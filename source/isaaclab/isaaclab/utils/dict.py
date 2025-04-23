@@ -15,6 +15,10 @@ from typing import Any
 from .array import TENSOR_TYPE_CONVERSIONS, TENSOR_TYPES
 from .string import callable_to_string, string_to_callable, string_to_slice
 
+# Author: Feng Yunduo, feature: add MISSING Type, begin
+from dataclasses import MISSING
+# Author: Feng Yunduo, feature: add MISSING Type, end
+
 """
 Dictionary <-> Class operations.
 """
@@ -121,6 +125,12 @@ def update_class_from_dict(obj, data: dict[str, Any], _ns: str = "") -> None:
                 value = string_to_callable(value)
             elif isinstance(value, type(obj_mem)) or value is None:
                 pass
+            # Author: Feng Yunduo, fix: obj_mem is MISSING or None whill cause error, begin
+            elif obj_mem is None and value is not None:
+                pass
+            elif isinstance(obj_mem,type(MISSING)) and value is not None:
+                pass
+            # Author: Feng Yunduo, fix: obj_mem is MISSING or None whill cause error, end
             else:
                 raise ValueError(
                     f"[Config]: Incorrect type under namespace: {key_ns}."

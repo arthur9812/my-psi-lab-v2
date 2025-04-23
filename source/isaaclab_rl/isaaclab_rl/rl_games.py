@@ -43,6 +43,10 @@ from rl_games.common.vecenv import IVecEnv
 
 from isaaclab.envs import DirectRLEnv, ManagerBasedRLEnv, VecEnvObs
 
+# Author: Feng Yunduo
+from psilab.envs.rl_env import RLEnv
+from psilab.envs.tp_env import TPEnv
+
 """
 Vectorized environment wrapper.
 """
@@ -79,7 +83,7 @@ class RlGamesVecEnvWrapper(IVecEnv):
         https://github.com/NVIDIA-Omniverse/IsaacGymEnvs
     """
 
-    def __init__(self, env: ManagerBasedRLEnv | DirectRLEnv, rl_device: str, clip_obs: float, clip_actions: float):
+    def __init__(self, env: ManagerBasedRLEnv | DirectRLEnv, rl_device: str, clip_obs: float, clip_actions: float):  
         """Initializes the wrapper instance.
 
         Args:
@@ -93,7 +97,8 @@ class RlGamesVecEnvWrapper(IVecEnv):
             ValueError: If specified, the privileged observations (critic) are not of type :obj:`gym.spaces.Box`.
         """
         # check that input is valid
-        if not isinstance(env.unwrapped, ManagerBasedRLEnv) and not isinstance(env.unwrapped, DirectRLEnv):
+        # if not isinstance(env.unwrapped, ManagerBasedRLEnv) and not isinstance(env.unwrapped, DirectRLEnv):
+        if not isinstance(env.unwrapped, ManagerBasedRLEnv) and not isinstance(env.unwrapped, DirectRLEnv) and not isinstance(env.unwrapped, RLEnv) and not isinstance(env.unwrapped, TPEnv):
             raise ValueError(
                 "The environment must be inherited from ManagerBasedRLEnv or DirectRLEnv. Environment type:"
                 f" {type(env)}"

@@ -1,5 +1,11 @@
 ![Isaac Lab](docs/source/_static/isaaclab.jpg)
 
+# Bug Log
+1.Third Module Numba will report Numpy Version Error
+How to fix: commit version check code
+![alt text](docs/images/image.png)
+
+
 ---
 
 # Isaac Lab

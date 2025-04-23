@@ -14,4 +14,8 @@ Currently, the following spawners are supported:
 """
 
 from .from_files import spawn_from_urdf, spawn_from_usd, spawn_ground_plane
-from .from_files_cfg import GroundPlaneCfg, UrdfFileCfg, UsdFileCfg
+
+# Import FileCfg, Author: Feng Yunduo, Date:2025-04-17, Start
+# Code-Bak: from .from_files_cfg import GroundPlaneCfg, UrdfFileCfg, UsdFileCfg
+from .from_files_cfg import FileCfg,GroundPlaneCfg, UrdfFileCfg, UsdFileCfg
+# Import FileCfg, Author: Feng Yunduo, Date:2025-04-17, End

@@ -17,6 +17,9 @@ sections = [
     "EXTRA_FIRSTPARTY",
     "TASK_FIRSTPARTY",
     "LOCALFOLDER",
+    "PSILAB_FIRSTPARTY",
+    "PSILAB_TASK_FIRSTPARTY",
+
 ]
 
 # Extra standard libraries considered as part of python (permissive licenses
@@ -60,8 +63,14 @@ known_extra_firstparty = [
     "isaaclab_mimic",
 ]
 known_task_firstparty = "isaaclab_tasks"
+
+known_psilab_firstparty = "psilab"
+known_psilab_task_firstparty = "psilab_tasks"
+
 # Imports from the local folder
 known_local_folder = "config"
+
+
 
 [tool.pyright]
 

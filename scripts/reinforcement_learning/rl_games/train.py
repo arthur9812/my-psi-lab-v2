@@ -11,7 +11,6 @@ import argparse
 import sys
 
 from isaaclab.app import AppLauncher
-
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with RL-Games.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
