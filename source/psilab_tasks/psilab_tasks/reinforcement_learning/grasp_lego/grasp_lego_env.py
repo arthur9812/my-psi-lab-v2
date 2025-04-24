@@ -35,7 +35,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
     """Configuration for Rl environment."""
 
     # params
-    episode_length_s = 1.5 * 210 / 60.0
+    episode_length_s = 1.0 * 210 / 60.0
     decimation = 2
     action_scale = 0.5
     action_space = 13
@@ -43,7 +43,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
     state_space = 130
 
     # other params from gym
-    arm_hand_dof_speed_scale = 3.0
+    arm_hand_dof_speed_scale = 10.0
     vel_obs_scale = 0.2
     act_moving_average = 0.8
     env_id_print_data = 0 # 打印信息的环境索引
@@ -59,7 +59,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
         render_interval=decimation,
         physx = PhysxCfg(
             solver_type = 1, # 0: pgs, 1: tgs
-            max_position_iteration_count = 16,
+            max_position_iteration_count = 64,
             max_velocity_iteration_count = 0,
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
@@ -94,7 +94,10 @@ class GraspLegoEnv(RLEnv):
 
         # arm joint index
         self._arm_joint_index = self.robot.actuators["arm"].joint_indices
-        
+    
+         # hand joint index
+        self._hand_joint_index = self.robot.actuators["hand"].joint_indices
+
         # hand base link index
         self._hand_base_link_index = self.robot.find_bodies(["hand1_link_base"])[0][0]
 
@@ -182,48 +185,49 @@ class GraspLegoEnv(RLEnv):
         # call super step first to apply action and sim step
         obs_buf,reward_buf, reset_terminated, reset_time_outs, extras = super().step(action)
         
-        # finger tip link state
-        thumb_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[0],:]
-        index_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[1],:]
-        middle_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[2],:]
-        ring_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[3],:]
-        pinky_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[4],:]
+        # # finger tip link state
+        # thumb_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[0],:]
+        # index_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[1],:]
+        # middle_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[2],:]
+        # ring_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[3],:]
+        # pinky_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[4],:]
         
-        grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
+        # grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
 
-        # lego state
-        lego_state =  self.lego.data.root_link_state_w[:,:]
+        # # lego state
+        # lego_state =  self.lego.data.root_link_state_w[:,:]
 
-        # refresh visualize and marker
-        marker_pos = torch.cat((
-            thumb_tip_link_state[0:1,:3],
-            index_tip_link_state[0:1,:3],
-            middle_tip_link_state[0:1,:3],
-            ring_tip_link_state[0:1,:3],
-            pinky_tip_link_state[0:1,:3],
-            lego_state[0:1,:3],
-            grasp_fingers_pos[0:1,:3]
-            ),0)
+        # # refresh visualize and marker
+        # marker_pos = torch.cat((
+        #     thumb_tip_link_state[0:1,:3],
+        #     index_tip_link_state[0:1,:3],
+        #     middle_tip_link_state[0:1,:3],
+        #     ring_tip_link_state[0:1,:3],
+        #     pinky_tip_link_state[0:1,:3],
+        #     lego_state[0:1,:3],
+        #     grasp_fingers_pos[0:1,:3]
+        #     ),0)
         
-        marker_rot = torch.cat((
-            thumb_tip_link_state[0:1,3:7],
-            index_tip_link_state[0:1,3:7],
-            middle_tip_link_state[0:1,3:7],
-            ring_tip_link_state[0:1,3:7],
-            pinky_tip_link_state[0:1,3:7],
-            lego_state[0:1,3:7],
-            # torch.zeros((self.num_envs,4),device="cuda:0")
-            torch.zeros((1,4),device="cuda:0")
-            ),0)
+        # marker_rot = torch.cat((
+        #     thumb_tip_link_state[0:1,3:7],
+        #     index_tip_link_state[0:1,3:7],
+        #     middle_tip_link_state[0:1,3:7],
+        #     ring_tip_link_state[0:1,3:7],
+        #     pinky_tip_link_state[0:1,3:7],
+        #     lego_state[0:1,3:7],
+        #     # torch.zeros((self.num_envs,4),device="cuda:0")
+        #     torch.zeros((1,4),device="cuda:0")
+        #     ),0)
 
-        self.visualizer.visualize(
-            marker_pos, 
-            marker_rot)
+        # self.visualizer.visualize(
+        #     marker_pos, 
+        #     marker_rot)
 
         return obs_buf,reward_buf, reset_terminated, reset_time_outs, extras
 
     def _apply_action(self):
         
+
         # actions 范围 -1 到 1 
         # action index 0-6 : arm velocity (normed), order is same with self._arm_joint_index
         # action index 7-12 : hand real joint position target (normed), order is same with self._hand_real_joint_index
@@ -241,20 +245,26 @@ class GraspLegoEnv(RLEnv):
         # ============ inspire hand ============
         # action 由 -1,1 映射到实际范围
         # real joint
+        # print(self._joint_pos_target[0, 8])
         self._joint_pos_target[:, self._hand_real_joint_index] = scale(
             self.actions[:, self._arm_joint_num:],
             self._joint_limit_lower[:,self._hand_real_joint_index],
             self._joint_limit_upper[:,self._hand_real_joint_index]
         )
+
         # # virtual joint
         # self._joint_pos_target[:, self._hand_virtual_joint_index] = scale(
         #     self.actions[:, [8,9,10,11,12]],
         #     self._joint_limit_lower[:,self._hand_virtual_joint_index],
         #     self._joint_limit_upper[:,self._hand_virtual_joint_index]
-        # )
+        # # # )
+        
         # 计算
         self._joint_pos_target[:, self._hand_real_joint_index] = self.cfg.act_moving_average * self._joint_pos_target[:, self._hand_real_joint_index] + (1.0 - self.cfg.act_moving_average) * self._joint_pos_target_lasttime[:, self._hand_real_joint_index]
         
+        # self._joint_pos_target[:, self._hand_real_joint_index] = self.robot.data.joint_pos[:, self._hand_real_joint_index] + 10.0  * self.physics_dt * self.actions[:, self._arm_joint_num:]
+
+
         # 裁减
         self._joint_pos_target[:, self._hand_real_joint_index] = tensor_clamp(
             self._joint_pos_target[:, self._hand_real_joint_index],
@@ -275,12 +285,21 @@ class GraspLegoEnv(RLEnv):
         # store variables 
         self._joint_pos_target_lasttime = self._joint_pos_target.clone()
 
-        # set joint position target
-        self.robot.set_joint_position_target(self._joint_pos_target)
+        # aa = self._joint_pos_target[:, self._hand_virtual_joint_index]
 
+        # set joint position target
+        # self.robot.write_joint_position_to_sim(
+        #     self._joint_pos_target[:, self._hand_virtual_joint_index],
+        #     self._hand_virtual_joint_index # type: ignore
+        #     )
+        # self._joint_pos_target= self.robot.data.default_joint_pos.clone()
+        self.robot.set_joint_position_target(
+            self._joint_pos_target
+            # self._joint_pos_target[0,:13],
+            # [0,1,2,3,4,5,6,7,8,9,10,11,12]
+            ) # type: ignore
         # update data to simulator, position target will not work without this step
         # self.robot.write_data_to_sim()
-
 
     def _get_observations(self) -> dict:
         

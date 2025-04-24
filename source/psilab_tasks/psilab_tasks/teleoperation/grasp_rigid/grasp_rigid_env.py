@@ -5,6 +5,7 @@
 
 """ Python Modules  """ 
 from __future__ import annotations
+from dataclasses import MISSING
 
 """ Common Modules  """ 
 import time
@@ -55,7 +56,7 @@ from isaaclab.envs.common import SpaceType, ViewerCfg
 """ Psi Lab Modules  """
 from psilab.envs.tp_env import TPEnv 
 from psilab.envs.tp_env_cfg import TPEnvCfg
-from psilab.configs.scenes.task_grasp_rigid import TASK_GRASP_RIGID_SCENE_CFG
+
 # from psila.assets.realman_inspire_no_camera import REALMAN_INSPIRE_NO_CAMERA_CFG
 # from psi_rl import PSI_RL_USD_ASSET_DIR
 from psilab.utils.wandb_utils import WandbLog
@@ -78,13 +79,8 @@ class GraspRigidEnvCfg(TPEnvCfg):
     observation_space = 130
     state_space = 130
 
-    # 
-    sample_step = 1
-
     # device
     device_cfg = VUER_PSI_DC_01_CFG
-
-    ouput_folder = OUTPUT_DIR + "/tp/"
 
     # viewer config
     viewer = ViewerCfg(
@@ -109,8 +105,11 @@ class GraspRigidEnvCfg(TPEnvCfg):
     )
 
     # scene config
-    scene = TASK_GRASP_RIGID_SCENE_CFG
-
+    scene = MISSING # type: ignore
+    #
+    ouput_folder = OUTPUT_DIR + "/tp/"
+    #
+    sample_step = 1
 
 class GraspRigidEnv(TPEnv):
 
@@ -172,42 +171,42 @@ class GraspRigidEnv(TPEnv):
         # print(self.scene.robots["robot1"].actuators["hand1"].joint_indices) # type: ignore)
         # self.vuer.veur_step()
 
-        contact_sensors = {
-            "left_hand":self.scene.sensors["left_hand"],
-            "right_hand":self.scene.sensors["right_hand"],
-        }
+        # contact_sensors = {
+        #     "left_hand":self.scene.sensors["left_hand"],
+        #     "right_hand":self.scene.sensors["right_hand"],
+        # }
 
         # 开始录制,自动判断成功失败
         if self.vuer.bRecording:
             pass
             # 失败判断
-            if eval_fail(
-                self.scene.robots["robot1"],
-                self.scene.rigid_objects["bottle"],
-                contact_sensors, # type: ignore
-                ): 
-                print("Failed")
-                self.reset()
+            # if eval_fail(
+            #     self.scene.robots["robot1"],
+            #     self.scene.rigid_objects["bottle"],
+            #     contact_sensors, # type: ignore
+            #     ): 
+            #     print("Failed")
+            #     self.reset()
 
-            # 成功判断
-            if eval_success(
-                self.scene.robots["robot1"],
-                self.scene.rigid_objects["bottle"],
-                contact_sensors, # type: ignore
-                0.3): 
-                print("Success")
-                save_data(self._data,self.cfg)
-                self.reset()
-                #
-                self._record_count+=1
-                record_stop_time = time.time()
-                record_time =  (record_stop_time - self._start_time) /60.0
-                record_rate = self._record_count / record_time
-                #   
+            # # 成功判断
+            # if eval_success(
+            #     self.scene.robots["robot1"],
+            #     self.scene.rigid_objects["bottle"],
+            #     contact_sensors, # type: ignore
+            #     0.3): 
+            #     print("Success")
+            #     save_data(self._data,self.cfg)
+            #     self.reset()
+            #     #
+            #     self._record_count+=1
+            #     record_stop_time = time.time()
+            #     record_time =  (record_stop_time - self._start_time) /60.0
+            #     record_rate = self._record_count / record_time
+            #     #   
 
-                print(f"采集时长: {record_time} 分钟")
-                print(f"采集数据: {self._record_count} 条")
-                print(f"采集效率: {record_rate} 条/分钟")
+            #     print(f"采集时长: {record_time} 分钟")
+            #     print(f"采集数据: {self._record_count} 条")
+            #     print(f"采集效率: {record_rate} 条/分钟")
 
         # 自动判断是否开始录制
         if self.vuer.bControl and not self.vuer.bRecording:

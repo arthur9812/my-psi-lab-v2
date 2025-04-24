@@ -4,6 +4,7 @@
 # Vesion: 1.0
 
 """ Isaac Lab Modules """
+from dataclasses import MISSING
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
@@ -17,11 +18,15 @@ from psilab.controllers.differential_ik_cfg import DiffIKControllerCfg
 
 PSI_DC_01_CFG = RobotBaseCfg(
 
-    prim_path="/World/Robot",
+    prim_path = MISSING, # type: ignore
+    
     spawn=sim_utils.UsdFileCfg(
-        usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/PsiRobot_DC_01_Tuned.usd",
-        activate_contact_sensors = True
+        usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned_Vuer.usd",
+        activate_contact_sensors = True,
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=True,
         ),
+    ),
 
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(-0.5, 0.0, 0.0),
@@ -68,17 +73,29 @@ PSI_DC_01_CFG = RobotBaseCfg(
                     
     actuators={
         "arm1": ImplicitActuatorCfg(
-            joint_names_expr=["arm1_joint_link[1-7]"],
-            effort_limit=None,
-            velocity_limit=None,
+            joint_names_expr=[
+                "arm1_joint_link1",
+                "arm1_joint_link2",
+                "arm1_joint_link3",
+                "arm1_joint_link4",
+                "arm1_joint_link5",
+                "arm1_joint_link6",
+                "arm1_joint_link7",
+                ],
             stiffness=None,
             damping=None,
 
         ),
         "arm2": ImplicitActuatorCfg(
-            joint_names_expr=["arm2_joint_link[1-7]"],
-            effort_limit=None,
-            velocity_limit=None,
+            joint_names_expr=[
+                "arm2_joint_link1",
+                "arm2_joint_link2",
+                "arm2_joint_link3",
+                "arm2_joint_link4",
+                "arm2_joint_link5",
+                "arm2_joint_link6",
+                "arm2_joint_link7",
+                ],
             stiffness=None,
             damping=None,
         ),
@@ -95,8 +112,6 @@ PSI_DC_01_CFG = RobotBaseCfg(
                 "hand1_joint_link_4_2",
                 "hand1_joint_link_5_1",
                 "hand1_joint_link_5_2"],
-            effort_limit=None,
-            velocity_limit=None,
             stiffness=None,
             damping=None,
 
@@ -114,8 +129,6 @@ PSI_DC_01_CFG = RobotBaseCfg(
                 "hand2_joint_link_4_2",
                 "hand2_joint_link_5_1",
                 "hand2_joint_link_5_2"],
-            effort_limit=None,
-            velocity_limit=None,
             stiffness=None,
             damping=None,
 

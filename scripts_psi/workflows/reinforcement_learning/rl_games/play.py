@@ -16,13 +16,18 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--checkpoint", type=str, default="/home/admin01/Work/00-PsiLab/psi-lab-v2/logs/rl_games/grasp_lego/2025-04-18_14-23-09/nn/grasp_lego.pth", help="Path to model checkpoint.")
+parser.add_argument("--checkpoint", type=str, default="/home/admin01/Work/02-PsiLab/psi-lab-v2/logs/rl_games/grasp_lego/2025-04-24_08-02-55/nn/grasp_lego.pth", help="Path to model checkpoint.")
 parser.add_argument(
     "--use_last_checkpoint",
     action="store_false",
     help="When no checkpoint provided, use the last saved model. Otherwise use the best saved model.",
 )
 
+# add argparse arguments from Psi
+parser.add_argument("--enable_wandb", action="store_true", default=False, help="Whether update Data to Wandb or not.")
+parser.add_argument("--enable_json", action="store_true", default=False, help="Create Scene from json.")
+parser.add_argument("--scene_file", type=str, default=None, help="Scene json file path.")
+parser.add_argument("--enable_store", action="store_true", default=False, help="Whether Store Data to files or not.")
 """ Must First Start APP, or import omni.isaac.lab.sim as sim_utils will be error."""
 from isaaclab.app import AppLauncher
 
@@ -30,6 +35,10 @@ from isaaclab.app import AppLauncher
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
+
+
+# store args befor create app as it will pop some arg from args_cli
+enable_cameras = args_cli.enable_cameras
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -41,6 +50,8 @@ import sys
 import gymnasium as gym
 import math
 import torch
+import importlib
+import json
 from rl_games.common import env_configurations, vecenv
 from rl_games.common.player import BasePlayer
 from rl_games.torch_runner import Runner
@@ -55,6 +66,7 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 
 """ Psi RL Modules  """ 
 import psilab_tasks
+from psilab.utils.config_utils import scene_cfg
 
 # 从注册的任务中寻找指定任务
 # registered_tasks = list()
@@ -71,6 +83,44 @@ def main():
         args_cli.task, device=args_cli.device, num_envs=args_cli.num_envs, 
         use_fabric=not args_cli.disable_fabric
     )
+
+
+    # get args for env config
+    env_cfg.enable_wandb = args_cli.enable_wandb # type: ignore
+    env_cfg.enable_store = args_cli.enable_store # type: ignore
+
+    # get scene config from json while "enable_json" is True
+    if args_cli.enable_json:
+        
+        # get scene config from given file while "scene_file" is not None
+        if args_cli.scene_file is not None:
+            scene_json_path = args_cli.scene_file
+        # otherwise,get scene config accordding to "scene_cfg_entry_point"
+        else:
+            scene_cfg_entry_point = gym.spec(args_cli.task).kwargs.get("scene_cfg_entry_point")
+            # resolve path to the scene config location
+            mod_name, file_name = scene_cfg_entry_point.split(":") # type: ignore
+            mod_path = os.path.dirname(importlib.import_module(mod_name).__file__) # type: ignore
+            scene_json_path = os.path.join(mod_path, file_name)
+        scene_json = open(scene_json_path, 'r')
+        scene_json = json.loads(scene_json.read())
+        scene = scene_cfg(scene_json)
+    else:
+        scene_cfg_entry_point = gym.spec(args_cli.task).kwargs.get("scene_cfg_entry_point")
+        mod_name, attr_name = scene_cfg_entry_point.split(":") # type: ignore
+        mod = importlib.import_module(mod_name)
+        scene = getattr(mod, attr_name)
+
+    # 
+    scene.num_envs = args_cli.num_envs
+    # change scene attr of env config
+    env_cfg.scene = scene
+    # clear camera configs in scene while "enable_cameras" flag is True
+    if enable_cameras is False:
+        scene.cameras_cfg ={}
+        for robot_cfg in scene.robots_cfg.values():
+            robot_cfg.cameras = {} # type: ignore
+
     agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
 
     # specify directory for logging experiments

@@ -94,9 +94,9 @@ sim_cfg = sim_utils.SimulationCfg(device=args_cli.device)
 sim_cfg.dt = 1/120
 sim_cfg.physx = PhysxCfg(
     solver_type=1,
-    enable_ccd=False,
+    enable_ccd=True,
     max_position_iteration_count=16,
-    max_velocity_iteration_count=4,
+    max_velocity_iteration_count=0,
     min_position_iteration_count=1,
     bounce_threshold_velocity = 0.02,
 
@@ -144,12 +144,17 @@ cfg.spawn.func("/World/table", cfg.spawn,cfg.init_state.pos,cfg.init_state.rot)
 cfg = RigidObjectCfg(
     prim_path="/World/Target",
     spawn=sim_utils.UsdFileCfg(
-        usd_path=PSILAB_USD_ASSET_DIR + "/others/cube.usd",
-        # scale=(1.0,1.0,1.0),
-        scale=(0.01,0.01,0.01),
+        # usd_path=PSILAB_USD_ASSET_DIR + "/others/cube.usd",
+        # scale=(0.01,0.01,0.01),
+
+        usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2.usd",
+        scale=(3.0,3.0,3.0),
 
         visual_material=sim_utils.PreviewSurfaceCfg(
             diffuse_color=(0.80, 0.64, 0.20)
+        ),
+        mass_props=MassPropertiesCfg(
+            mass = 1
         ),
         rigid_props=RigidBodyPropertiesCfg(
             solver_position_iteration_count=255,
@@ -159,8 +164,10 @@ cfg = RigidObjectCfg(
 
     ),
     init_state=RigidObjectCfg.InitialStateCfg(
-        pos=(0.26,0,0.7),
-        rot= (1,0,0,0)
+        pos=(0.29,0,0.7),
+        # rot= (1,0,0,0)
+        rot= (0.707,0,0.707,0)
+
     )
 )
 # cfg.spawn.func("/World/target", cfg.spawn,cfg.init_state.pos,cfg.init_state.rot)
@@ -235,6 +242,8 @@ while(True):
 
 
     joint_pos_target[0,5]+=0.1 * sim.cfg.dt
+    joint_pos_target[0,8:12]-=0.1 * sim.cfg.dt
+
     robot.set_joint_position_target(joint_pos_target)
     robot.update(sim.cfg.dt)
     robot.write_data_to_sim()

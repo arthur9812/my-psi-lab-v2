@@ -4,6 +4,7 @@
 # Vesion: 1.0
 
 """ Isaac Lab Modules """
+from dataclasses import MISSING
 import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.sensors.camera import CameraCfg,Camera
@@ -15,12 +16,13 @@ from psilab import PSILAB_USD_ASSET_DIR
 
 
 PSI_AWH_01_CFG = RobotBaseCfg(
-    prim_path="/World/Robot",
+    prim_path = MISSING, # type: ignore
+    
     spawn=sim_utils.UsdFileCfg(
         usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_AWH_01/Version_3.0/PsiRobot_AWH_01_Left.usd",
         activate_contact_sensors = True,
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True,
+            enabled_self_collisions=False,
         ),
     ),
     

@@ -17,6 +17,9 @@ from isaaclab.sim.spawners.sensors.sensors_cfg import PinholeCameraCfg
 from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.sensors.camera.tiled_camera_cfg import TiledCameraCfg
 
+from isaaclab.sim.schemas.schemas_cfg import (
+    MassPropertiesCfg
+)
 from isaaclab.assets import (
     AssetBaseCfg,
     RigidObjectCfg,
@@ -82,10 +85,13 @@ EMPTY_SCENE_CFG = SceneCfg(
                     visual_material=sim_utils.PreviewSurfaceCfg(
                         diffuse_color=(0.80, 0.64, 0.20)
                     ),
+                    mass_props=MassPropertiesCfg(
+                        mass = 0.01
+                    ),
                     rigid_props=RigidBodyPropertiesCfg(
-                        solver_position_iteration_count=16,
-                        max_linear_velocity=1.0,
-                        max_angular_velocity=180,
+                        solver_position_iteration_count=64,
+                        # max_linear_velocity=1.0,
+                        # max_angular_velocity=180,
                     ),
             
                 ),
@@ -155,10 +161,10 @@ EMPTY_SCENE_CFG = SceneCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
                     scale=(0.01, 0.01, 0.01),
                 ),
-                "lego": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
-                    scale=(0.04, 0.04, 0.04),
-                ),
+                # "lego": sim_utils.UsdFileCfg(
+                #     usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
+                #     scale=(0.04, 0.04, 0.04),
+                # ),
                 "middle_point": sim_utils.UsdFileCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
                     scale=(0.01, 0.01, 0.01),
@@ -175,8 +181,8 @@ EMPTY_SCENE_CFG = SceneCfg(
             rigid_objects_cfg = {
                 "lego": RigidRandomCfg(
                     fake_random=False,
-                    random_position=False,
-                    random_orientation=False,
+                    random_position=True,
+                    random_orientation=True,
                     random_material=False,
                     position_range=[0.1,0.1,0.0],
                     position_list=None,

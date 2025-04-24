@@ -53,7 +53,7 @@ from isaaclab.envs.common import SpaceType, ViewerCfg
 """ Psi Lab Modules  """
 from psilab.envs.rp_env import RPEnv 
 from psilab.envs.rp_env_cfg import RPEnvCfg
-from psilab.configs.scenes.task_grasp_rigid import TASK_GRASP_RIGID_SCENE_CFG
+from psilab_tasks.teleoperation.grasp_rigid.scenes.room_scene_cfg import TASK_GRASP_RIGID_SCENE_CFG
 # from psila.assets.realman_inspire_no_camera import REALMAN_INSPIRE_NO_CAMERA_CFG
 # from psi_rl import PSI_RL_USD_ASSET_DIR
 from psilab.utils.wandb_utils import WandbLog

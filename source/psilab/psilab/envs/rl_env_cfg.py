@@ -244,6 +244,4 @@ class RLEnvCfg:
     sample_step : int = MISSING  # type: ignore
     """ Simulator step numbers per Sample step. """
     
-
-
     # Add other flags, Author: Feng Yunduo, Date:2025-04-17, End

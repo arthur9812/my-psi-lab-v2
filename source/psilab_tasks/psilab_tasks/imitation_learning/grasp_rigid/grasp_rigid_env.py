@@ -59,7 +59,7 @@ from isaaclab.envs.common import SpaceType, ViewerCfg
 from psilab import OUTPUT_DIR
 from psilab.envs.il_env import ILEnv 
 from psilab.envs.il_env_cfg import ILEnvCfg
-from psilab.configs.scenes.task_grasp_rigid import TASK_GRASP_RIGID_SCENE_CFG
+from psilab_tasks.teleoperation.grasp_rigid.scenes.room_scene_cfg import TASK_GRASP_RIGID_SCENE_CFG
 from psilab.eval.grasp_rigid import eval_success,eval_fail
 from psilab.utils.data_collect_utils import create_empty_data,parse_step_data,save_data
 from psilab.utils.wandb_utils import WandbLog

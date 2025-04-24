@@ -29,7 +29,7 @@ from psilab.random.random_cfg import RandomCfg,RigidRandomCfg
 
 
 
-TASK_GRASP_RIGID_SCENE_CFG = SceneCfg(
+ROOM_SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
         env_spacing=4.0, 
@@ -49,16 +49,19 @@ TASK_GRASP_RIGID_SCENE_CFG = SceneCfg(
 
         # robot
         robots_cfg = {
-            "robot1" : PSI_DC_01_CFG.replace(prim_path="/World/envs/env_[0-9]+/Robot1"), # type: ignore
+            "robot" : PSI_DC_01_CFG.replace(prim_path="/World/Robot"), # type: ignore
         },
         
         # static object
         static_objects_cfg = {
-            "ground" : AssetBaseCfg(
-                prim_path="/World/defaultGroundPlane", 
-                spawn=sim_utils.GroundPlaneCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/Grid/default_environment.usd",
-                    color=None
+            "room" : AssetBaseCfg(
+                prim_path="/World/Room", 
+                spawn=sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/envs/psi_garage_2_obj/GarageScene.usd"
+                ),
+                init_state = RigidObjectCfg.InitialStateCfg(
+                    pos=(0.0, 0.0, 0.0), 
+                    rot= (0.707, 0.707, 0.0, 0.0)
                 )
             )
         },
@@ -85,20 +88,20 @@ TASK_GRASP_RIGID_SCENE_CFG = SceneCfg(
             "bottle" : RigidObjectCfg(
                 prim_path="/World/envs/env_.*/bottle",
                 spawn=sim_utils.UsdFileCfg(
-                    # usd_path=PSILAB_USD_ASSET_DIR + "/others/drink-B36-V1/B36.usd",
-                    # scale=(0.0006, 0.0006, 0.0006),
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/cube.usd",
-                    scale=(0.01,0.01,0.01),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/drink-B36-V1/B36.usd",
+                    scale=(0.0006, 0.0006, 0.0006),
+                    # usd_path=PSILAB_USD_ASSET_DIR + "/others/cube.usd",
+                    # scale=(0.01,0.01,0.01),
                     visual_material=None,
                     rigid_props=RigidBodyPropertiesCfg(
-                            kinematic_enabled = True,
+                            kinematic_enabled = False,
                             solver_position_iteration_count=255
                         )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=(0.0,-0.1,0.8),
-                    # rot= (0.707, 0.707, 0.0, 0.0)
-                    rot= (1.0,0.0,0.0,0.0)
+                    rot= (0.707, 0.707, 0.0, 0.0)
+                    # rot= (1.0,0.0,0.0,0.0)
 
                 )
             ),
@@ -117,7 +120,7 @@ TASK_GRASP_RIGID_SCENE_CFG = SceneCfg(
                 prim_path = "/World/CameraLeft",
                 spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
                 offset = CameraCfg().OffsetCfg(
-                    pos = (0.0,0.0,0.0),
+                    pos = (-0.3,0.033,1.6),
                     rot = (1,0,0,0),
                     convention='world')
             ),
@@ -128,7 +131,7 @@ TASK_GRASP_RIGID_SCENE_CFG = SceneCfg(
                 prim_path = "/World/CameraRight",
                 spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
                 offset = CameraCfg().OffsetCfg(
-                    pos = (0.0,0.0,0.0),
+                    pos = (-0.3,-0.033,1.6),
                     rot = (1,0,0,0),
                     convention='world')
             ),
@@ -136,20 +139,20 @@ TASK_GRASP_RIGID_SCENE_CFG = SceneCfg(
         
         # contact sensor
         contact_sensors_cfg={
-            "left_hand": ContactSensorCfg(
-                prim_path="/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Left/hand1_link_.*",
-                update_period=0.0,
-                history_length=0,
-                debug_vis=False,
-                filter_prim_paths_expr=[],
-            ),
-            "right_hand": ContactSensorCfg(
-                prim_path="/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Right/hand2_link_.*",
-                update_period=0.0,
-                history_length=0,
-                debug_vis=False,
-                filter_prim_paths_expr=[],
-            ),
+            # "left_hand": ContactSensorCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Left/hand1_link_.*",
+            #     update_period=0.0,
+            #     history_length=0,
+            #     debug_vis=False,
+            #     filter_prim_paths_expr=[],
+            # ),
+            # "right_hand": ContactSensorCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Right/hand2_link_.*",
+            #     update_period=0.0,
+            #     history_length=0,
+            #     debug_vis=False,
+            #     filter_prim_paths_expr=[],
+            # ),
         },
 
         # debug marker
