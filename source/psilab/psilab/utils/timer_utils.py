@@ -17,6 +17,8 @@ class Timer(metaclass=SingletonMeta):
     def run_time(self):
         return int(time.time() - self._start_time)
         
-
+    @property
+    def start_time(self):
+        return self._start_time
 
     

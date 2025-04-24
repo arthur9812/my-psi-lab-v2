@@ -27,6 +27,9 @@ class WandbLog(metaclass=SingletonMeta):
     def get_data(self, key:str)->float:
         return self.log_data[key]
     
+    def get_step(self)->int:
+        return self.step
+    
     def upload(self,key:str):
 
         if key not in self.log_data.keys():

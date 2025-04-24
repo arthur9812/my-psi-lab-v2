@@ -20,6 +20,7 @@ from isaaclab.sensors.camera.tiled_camera_cfg import TiledCameraCfg
 from isaaclab.sim.schemas.schemas_cfg import (
     MassPropertiesCfg
 )
+
 from isaaclab.assets import (
     AssetBaseCfg,
     RigidObjectCfg,
@@ -52,7 +53,7 @@ EMPTY_SCENE_CFG = SceneCfg(
 
         # robot
         robots_cfg = {
-            "robot1" : PSI_AWH_01_CFG.replace(prim_path="/World/envs/env_[0-9]+/Robot"), # type: ignore
+            "robot" : PSI_AWH_01_CFG.replace(prim_path="/World/envs/env_[0-9]+/Robot"), # type: ignore
         },
         
         # static object
@@ -90,8 +91,6 @@ EMPTY_SCENE_CFG = SceneCfg(
                     ),
                     rigid_props=RigidBodyPropertiesCfg(
                         solver_position_iteration_count=64,
-                        # max_linear_velocity=1.0,
-                        # max_angular_velocity=180,
                     ),
             
                 ),
@@ -161,10 +160,10 @@ EMPTY_SCENE_CFG = SceneCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
                     scale=(0.01, 0.01, 0.01),
                 ),
-                # "lego": sim_utils.UsdFileCfg(
-                #     usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
-                #     scale=(0.04, 0.04, 0.04),
-                # ),
+                "lego": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
+                    scale=(0.04, 0.04, 0.04),
+                ),
                 "middle_point": sim_utils.UsdFileCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/others/frame_prim.usd",
                     scale=(0.01, 0.01, 0.01),
@@ -193,7 +192,3 @@ EMPTY_SCENE_CFG = SceneCfg(
         )
 
     )
-
-# @configclass
-# class EmptySceneCfg(SceneCfg):
-

@@ -9,6 +9,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.sensors.camera import CameraCfg,Camera
 from isaaclab.assets.articulation import ArticulationCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 
 """ PsiLab Modules """
 from psilab.assets.robot_base_cfg import RobotBaseCfg
@@ -22,8 +23,11 @@ PSI_AWH_01_CFG = RobotBaseCfg(
         usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_AWH_01/Version_3.0/PsiRobot_AWH_01_Left.usd",
         activate_contact_sensors = True,
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=False,
+            enabled_self_collisions=True,
         ),
+        rigid_props=RigidBodyPropertiesCfg(
+            solver_position_iteration_count=64,
+        )
     ),
     
     init_state=ArticulationCfg.InitialStateCfg(

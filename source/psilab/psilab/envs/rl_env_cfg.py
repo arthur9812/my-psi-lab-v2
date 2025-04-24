@@ -232,16 +232,16 @@ class RLEnvCfg:
 
 
     # Add other flags, Author: Feng Yunduo, Date:2025-04-17, Start
-    enable_wandb: bool = MISSING # type: ignore
+    enable_wandb: bool = False # type: ignore
     """Whether log data to wandb"""
 
-    enable_store : bool = MISSING  # type: ignore
+    enable_output : bool = False  # type: ignore
     """ Whether Save Data or not. """
 
-    ouput_folder: str = MISSING  # type: ignore
+    ouput_folder: str | None = None  # type: ignore
     """ Data Ouptut Folder. """
 
-    sample_step : int = MISSING  # type: ignore
+    sample_step : int = 1  # type: ignore
     """ Simulator step numbers per Sample step. """
     
     # Add other flags, Author: Feng Yunduo, Date:2025-04-17, End
