@@ -26,7 +26,7 @@ PSI_AWH_01_CFG = RobotBaseCfg(
             enabled_self_collisions=True,
         ),
         rigid_props=RigidBodyPropertiesCfg(
-            solver_position_iteration_count=64,
+            solver_position_iteration_count=255,
         )
     ),
     

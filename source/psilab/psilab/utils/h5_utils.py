@@ -25,6 +25,13 @@ def dict_to_h5(dict_data:dict, h5_file:h5py.File, current_path:str):
             # 
             elif isinstance(value[0], int):
                 h5_file.create_dataset(current_path+key,dtype=numpy.int8,data=value)
+            # 
+            elif isinstance(value[0], torch.Tensor):
+                # rgb image
+                if value[0].dtype == torch.uint8:
+                    h5_file.create_dataset(current_path+key,dtype=numpy.uint8,data=value)
+                else:
+                    h5_file.create_dataset(current_path+key,dtype=numpy.float32,data=value)
             # elif type(value[0])==type(numpy.float64):
             #     h5_file.create_dataset(current_path+key,dtype=numpy.float64,data=value)
             else:

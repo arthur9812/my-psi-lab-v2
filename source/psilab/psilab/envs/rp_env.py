@@ -10,7 +10,9 @@ from typing import Any
 """ Common Modules  """ 
 import h5py
 import torch
-
+import numpy
+import cv2
+import matplotlib.pyplot as plt
 """ Isaac Lab Modules  """ 
 from isaaclab.envs.common import VecEnvStepReturn
 
@@ -28,11 +30,11 @@ class RPEnv(RLEnv):
         #
         self.cfg = cfg
         # get h5 file
-        self._h5_file = h5py.File(cfg.h5_file, 'r')
+        self._hdf5_file = h5py.File(cfg.hdf5_file, 'r')
         # 
         self._step = 0
 
-        # fake state
+        # fake state which is useless
         self._obs_zero = {
             "policy":torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device), # type: ignore
             "critic":torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device) # type: ignore
@@ -42,31 +44,52 @@ class RPEnv(RLEnv):
         self._dones_zero = torch.tensor([0 for i in range(self.num_envs)], device=self.device)
 
     def step(self, action: torch.Tensor) -> VecEnvStepReturn:
-        
+
+        #
+        self.sim_step()
+
         # return observations, rewards, resets and extras
         return self._obs_zero, self._reward_zero, self._reset_zero, self.reset_time_outs, dict()
 
     def sim_step(self):
         
-        # 
-        if self._step >= self._h5_file["/timestamps"].len(): # type: ignore
+        # repeat while replay finish
+        if self._step >= self._hdf5_file["/timestamps"].len(): # type: ignore
             self._step = 0
 
         # robots
-        for robot_name in list(self._h5_file["/robots"].keys()): # type: ignore
-            for joint_group_name in self._h5_file["/robots/"+robot_name+"/extra/joint_name"]:
+        for robot_name in list(self._hdf5_file["/robots"].keys()): # type: ignore
+            # joints
+            for joint_group_name in self._hdf5_file["/robots/"+robot_name+"/extra/joint_name"]:
                 if joint_group_name=="all":
                     continue
                 # 
-                joint_pos = torch.tensor(self._h5_file["/robots/"+robot_name+"/"+joint_group_name + "_pos"][:][self._step],device="cuda:0").unsqueeze(0)# type: ignore
-                joint_vel = torch.tensor(self._h5_file["/robots/"+robot_name+"/"+joint_group_name + "_vel"][:][self._step],device="cuda:0").unsqueeze(0)# type: ignore
-                joint_indexs = self._h5_file["/robots/"+robot_name+"/extra/joint_index/"+joint_group_name][:].tolist() # type: ignore
+                joint_pos = torch.tensor(self._hdf5_file["/robots/"+robot_name+"/"+joint_group_name + "_pos"][:][self._step],device="cuda:0").unsqueeze(0)# type: ignore
+                joint_vel = torch.tensor(self._hdf5_file["/robots/"+robot_name+"/"+joint_group_name + "_vel"][:][self._step],device="cuda:0").unsqueeze(0)# type: ignore
+                joint_indexs = self._hdf5_file["/robots/"+robot_name+"/extra/joint_index/"+joint_group_name][:].tolist() # type: ignore
                 self.scene.robots[robot_name].write_joint_state_to_sim(joint_pos,joint_vel,joint_indexs)
-
+            # TODO: add cameras image replay
+            # BUG: not sure why camera names turn into bytes and other str in H5 is right
+            # BUG: opencv imshow will freeze all!!!!
+            # image = None
+            # for camera_name in self._hdf5_file["/robots/"+robot_name+"/extra/cameras"]:
+            #     if image is None:
+            #         image = self._hdf5_file["/robots/"+robot_name+"/"+camera_name.decode("utf-8")][:][self._step] # type: ignore
+            #     else:
+            #         image = self._hdf5_file["/robots/"+robot_name+"/"+camera_name.decode("utf-8")][:][self._step] # type: ignore
+            #         # image = numpy.concatenate((image, image2), axis=0)   # type: ignore # axis=0 按垂直方向，axis=1 按水平方向
+            # if image is not None:
+            #     image = self._hdf5_file["/robots/robot/arm2_camera.rgb"][:][self._step]
+            #     # image = cv2.Mat(self._hdf5_file["/robots/robot/arm1_camera.rgb"][:][self._step])
+            #     cv2.imshow("xx",image)
+            #     cv2.waitKey(30)
+            #     # plt.imshow("xx",image) # type: ignore
+            #     # plt.pause(0.001)
+            # pass
         # rigid object
-        for object_name in list(self._h5_file["/rigid_objects"].keys()): # type: ignore
+        for object_name in list(self._hdf5_file["/rigid_objects"].keys()): # type: ignore
             state = torch.cat((
-                torch.tensor(self._h5_file["/rigid_objects/"+object_name][:][self._step],device="cuda:0"),# type: ignore
+                torch.tensor(self._hdf5_file["/rigid_objects/"+object_name][:][self._step],device="cuda:0"),# type: ignore
                 torch.zeros(6,device="cuda:0")),0).unsqueeze(0)
 
             self.scene.rigid_objects[object_name].write_root_state_to_sim(state)

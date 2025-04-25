@@ -58,8 +58,8 @@ def eval_fail(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,C
                 contact_force_num+=1
         pass
 
-    print(f"Velocity on Z-Axis: {velocity_z}")
-    print(f"Contact Force Num: {contact_force_num}")
+    # print(f"Velocity on Z-Axis: {velocity_z}")
+    # print(f"Contact Force Num: {contact_force_num}")
 
     if velocity_z <= -0.2 and contact_force_num==0:
         return True

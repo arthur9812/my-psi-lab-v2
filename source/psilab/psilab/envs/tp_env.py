@@ -19,48 +19,31 @@ from psilab.devices.vuer_tp import VuerTp
 from psilab.envs.tp_env_cfg import TPEnvCfg
 from psilab.envs.rl_env import RLEnv
 from psilab.utils.voice_utils import ESpeak
-from psilab.utils.data_collect_utils import create_empty_data
+from psilab.utils.data_collect_utils import create_data_buffer
 
 class TPEnv(RLEnv):
     """The tele operation environment class."""
 
     def __init__(self, cfg: TPEnvCfg, render_mode: str | None = None, **kwargs):
 
+        # voice instance used to speak tips words
+        self._voice = ESpeak(speed=300, voice='zh')
 
+        # vr device   
+        self._vuer = VuerTp(cfg.device_cfg) # type: ignore
 
-        # 实例化语音类
-        self.voice = ESpeak(speed=300, voice='zh')
-
-        # 实例化vuer    
-        self.vuer = VuerTp(cfg.device_cfg) # type: ignore
-
-        # 眼部相机位置需要根据robot和teleop config计算得
-        camere_eye_left_pos=(
-            cfg.scene.robots_cfg["robot1"].init_state.pos[0] + cfg.device_cfg.head_pos[0] + cfg.device_cfg.eye_left_offset[0], # type: ignore
-            cfg.scene.robots_cfg["robot1"].init_state.pos[1] + cfg.device_cfg.head_pos[1] + cfg.device_cfg.eye_left_offset[1], # type: ignore
-            cfg.scene.robots_cfg["robot1"].init_state.pos[2] + cfg.device_cfg.head_pos[2] + cfg.device_cfg.eye_left_offset[2], # type: ignore                                
-        ),
-
-        camere_eye_right_pos=(
-            cfg.scene.robots_cfg["robot1"].init_state.pos[0] + cfg.device_cfg.head_pos[0] + cfg.device_cfg.eye_right_offset[0], # type: ignore
-            cfg.scene.robots_cfg["robot1"].init_state.pos[1] + cfg.device_cfg.head_pos[1] + cfg.device_cfg.eye_right_offset[1], # type: ignore
-            cfg.scene.robots_cfg["robot1"].init_state.pos[2] + cfg.device_cfg.head_pos[2] + cfg.device_cfg.eye_right_offset[2], # type: ignore                                   
-        ),
-
-        cfg.scene.cameras_cfg["eye_left"].offset.pos = camere_eye_left_pos # type: ignore
-        cfg.scene.cameras_cfg["eye_right"].offset.pos = camere_eye_right_pos # type: ignore
         #
         super().__init__(cfg, render_mode, **kwargs)
         #
         self.cfg = cfg
         # 
-        self._data = create_empty_data(self,self.cfg)
+        self._data : dict = None # type: ignore
         
         # change output folder with date and time
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.cfg.ouput_folder+=f"{timestamp}/"
+        self.cfg.output_folder+=f"/{timestamp}" # type: ignore
 
-        # fake state
+        # fake state which is useless
         self._obs_zero = {
             "policy":torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device), # type: ignore
             "critic":torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device) # type: ignore
@@ -95,14 +78,13 @@ class TPEnv(RLEnv):
         # reset scene
         self.scene.reset()
         # 
-        self.vuer.reset()
+        self._vuer.reset()
         # clear data
-        self._data = create_empty_data(self,self.cfg)
+        self._data = create_data_buffer(self,self.cfg)
         # clear cuda cache
         torch.cuda.empty_cache()
         # 
         return super().reset()
-
 
 
     """

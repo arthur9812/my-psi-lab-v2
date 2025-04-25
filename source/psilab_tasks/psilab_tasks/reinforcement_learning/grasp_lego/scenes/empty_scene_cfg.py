@@ -90,7 +90,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                         mass = 0.01
                     ),
                     rigid_props=RigidBodyPropertiesCfg(
-                        solver_position_iteration_count=64,
+                        solver_position_iteration_count=255,
                     ),
             
                 ),

@@ -6,18 +6,17 @@
 """ Arguments parse """
 import argparse
 
-# add argparse arguments
+# add argparse arguments from Psi
 parser = argparse.ArgumentParser(description="This script demonstrates lego grasp task demo from gym.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="", help="Name of the task.")
-
-parser.add_argument("--output_dir", type=str, default=None, help="Path to model checkpoint.")
-
-# add argparse arguments from Psi
-parser.add_argument("--enable_wandb", action="store_true", default=False, help="Whether update Data to Wandb or not.")
-parser.add_argument("--enable_json", action="store_true", default=False, help="Create Scene from json.")
-parser.add_argument("--scene_file", type=str, default=None, help="Scene json file path.")
-parser.add_argument("--enable_store", action="store_true", default=False, help="Whether Store Data to files or not.")
+parser.add_argument("--seed", type=int, default=42, help="Seed used for the environment")
+parser.add_argument("--enable_wandb", action="store_true", default=False, help="Whether update data to wandb or not.")
+parser.add_argument("--enable_json", action="store_true", default=False, help="Whether create scene from json or not.")
+parser.add_argument("--json_file", type=str, default=None, help="Scene json file.")
+parser.add_argument("--enable_output", action="store_true", default=False, help="Whether output data to hdf5 files or not.")
+parser.add_argument("--output_folder", type=str, default=None, help="Hdf5 files folder.")
+parser.add_argument("--sample_step", type=int, default=1, help="Simulation steps per sample step") 
 
 
 """ Must First Start APP, or import omni.isaac.lab.sim as sim_utils will be error."""
@@ -58,10 +57,9 @@ from psilab.envs.tp_env import TPEnv
 # import psilab.tasks # noqa: F401
 import psilab_tasks
 from psilab.envs.tp_env import TPEnv
-from psilab.utils.config_utils import scene_cfg
+from psilab_tasks.utils import parse_scene_cfg,parse_rl_env_cfg
 
-# from psilab.envs.tp_env import TPEnvDataCollectWrapper
-# create env
+# parse argumanets for isaac lab rl env config
 env_cfg= parse_env_cfg(
     args_cli.task, 
     device=args_cli.device,
@@ -69,54 +67,30 @@ env_cfg= parse_env_cfg(
     # use_fabric=not args_cli.disable_fabric
     )
 
+# parse argumanets for psi lab rl env config
+env_cfg = parse_rl_env_cfg(
+    env_cfg,
+    args_cli.seed,
+    args_cli.enable_wandb,
+    args_cli.enable_output,
+    args_cli.output_folder,
+    args_cli.sample_step
+)
 
-# get args for env config
-env_cfg.enable_wandb = args_cli.enable_wandb # type: ignore
-env_cfg.enable_store = args_cli.enable_store # type: ignore
+# parse argumanets for psi lab scene config
+env_cfg.scene = parse_scene_cfg(
+    args_cli.task, 
+    args_cli.enable_json,
+    args_cli.json_file,
+    args_cli.num_envs,
+)
 
-# get scene config from json while "enable_json" is True
-if args_cli.enable_json:
-    
-    # get scene config from given file while "scene_file" is not None
-    if args_cli.scene_file is not None:
-        scene_json_path = args_cli.scene_file
-    # otherwise,get scene config accordding to "scene_cfg_entry_point"
-    else:
-        scene_cfg_entry_point = gym.spec(args_cli.task).kwargs.get("scene_cfg_entry_point")
-        # resolve path to the scene config location
-        mod_name, file_name = scene_cfg_entry_point.split(":") # type: ignore
-        mod_path = os.path.dirname(importlib.import_module(mod_name).__file__) # type: ignore
-        scene_json_path = os.path.join(mod_path, file_name)
-    scene_json = open(scene_json_path, 'r')
-    scene_json = json.loads(scene_json.read())
-    scene = scene_cfg(scene_json)
-else:
-    scene_cfg_entry_point = gym.spec(args_cli.task).kwargs.get("scene_cfg_entry_point")
-    mod_name, attr_name = scene_cfg_entry_point.split(":") # type: ignore
-    mod = importlib.import_module(mod_name)
-    scene = getattr(mod, attr_name)
-
-# 
-scene.num_envs = args_cli.num_envs
-# change scene attr of env config
-env_cfg.scene = scene
-
+# create env
 env = gym.make(args_cli.task, cfg=env_cfg)
 
+# reset env before loop
 env.reset()
 
-# env = type(TPEnv)env
-# print(isinstance(env,TPEnv))
-# env = TPEnvWrapper(env) # type: ignore
-# wrap around environment for rl-games
-# env = TPEnvDataCollectWrapper(env) # type: ignore
-# env.run()
-# pass
-# 
-
 while(True):
-    #
+    # env step
     env.step(torch.zeros(1))
-    # for i in range(env_cfg.decimation):
-        
-    # env.() 

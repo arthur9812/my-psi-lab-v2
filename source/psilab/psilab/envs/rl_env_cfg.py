@@ -238,7 +238,7 @@ class RLEnvCfg:
     enable_output : bool = False  # type: ignore
     """ Whether Save Data or not. """
 
-    ouput_folder: str | None = None  # type: ignore
+    output_folder: str | None = MISSING  # type: ignore
     """ Data Ouptut Folder. """
 
     sample_step : int = 1  # type: ignore

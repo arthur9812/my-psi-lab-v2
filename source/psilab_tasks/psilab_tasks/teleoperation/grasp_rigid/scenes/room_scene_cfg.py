@@ -70,7 +70,7 @@ ROOM_SCENE_CFG = SceneCfg(
         rigid_objects_cfg ={
 
             "table" : RigidObjectCfg(
-                    prim_path="/World/envs/env_[0-9]+/Table", 
+                    prim_path="/World/Table", 
                     spawn=sim_utils.UsdFileCfg(
                         usd_path=PSILAB_USD_ASSET_DIR + "/others/table_1157.usd",
                         scale=(1.0, 1.0, 1.8),
@@ -86,7 +86,7 @@ ROOM_SCENE_CFG = SceneCfg(
                     )
                 ),
             "bottle" : RigidObjectCfg(
-                prim_path="/World/envs/env_.*/bottle",
+                prim_path="/World/Bottle",
                 spawn=sim_utils.UsdFileCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/others/drink-B36-V1/B36.usd",
                     scale=(0.0006, 0.0006, 0.0006),
@@ -99,7 +99,7 @@ ROOM_SCENE_CFG = SceneCfg(
                         )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.0,-0.1,0.8),
+                    pos=(0.0,0.0,0.85),
                     rot= (0.707, 0.707, 0.0, 0.0)
                     # rot= (1.0,0.0,0.0,0.0)
 
@@ -139,20 +139,20 @@ ROOM_SCENE_CFG = SceneCfg(
         
         # contact sensor
         contact_sensors_cfg={
-            # "left_hand": ContactSensorCfg(
-            #     prim_path="/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Left/hand1_link_.*",
-            #     update_period=0.0,
-            #     history_length=0,
-            #     debug_vis=False,
-            #     filter_prim_paths_expr=[],
-            # ),
-            # "right_hand": ContactSensorCfg(
-            #     prim_path="/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Right/hand2_link_.*",
-            #     update_period=0.0,
-            #     history_length=0,
-            #     debug_vis=False,
-            #     filter_prim_paths_expr=[],
-            # ),
+            "left_hand": ContactSensorCfg(
+                prim_path="/World/Robot/InspireHand_OY_Left/hand1_link_.*",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=[],
+            ),
+            "right_hand": ContactSensorCfg(
+                prim_path="/World/Robot/InspireHand_OY_Right/hand2_link_.*",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=[],
+            ),
         },
 
         # debug marker

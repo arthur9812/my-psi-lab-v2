@@ -21,7 +21,7 @@ PSI_DC_01_CFG = RobotBaseCfg(
     prim_path = MISSING, # type: ignore
     
     spawn=sim_utils.UsdFileCfg(
-        usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned_Vuer.usd",
+        usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned.usd",
         activate_contact_sensors = True,
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=True,

@@ -27,7 +27,7 @@ from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.utils.wandb_utils import WandbLog
 from psilab.utils.timer_utils import Timer
 
-from psilab.utils.data_collect_utils import create_empty_data,parse_step_data,save_data
+from psilab.utils.data_collect_utils import create_data_buffer,parse_data,save_data
 
 
 @configclass
@@ -43,7 +43,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
     state_space = 130
 
     # other params from gym
-    arm_hand_dof_speed_scale = 10.0
+    arm_hand_dof_speed_scale = 40.0
     vel_obs_scale = 0.2
     act_moving_average = 0.8
     env_id_print_data = 0 # 打印信息的环境索引
@@ -55,7 +55,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
         render_interval=decimation,
         physx = PhysxCfg(
             solver_type = 1, # 0: pgs, 1: tgs
-            max_position_iteration_count = 64,
+            max_position_iteration_count = 128,
             max_velocity_iteration_count = 0,
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
@@ -67,6 +67,8 @@ class GraspLegoEnvCfg(RLEnvCfg):
 
     )
 
+    # defualt ouput folder
+    output_folder = OUTPUT_DIR + "/rl"
 
 # TODO: output custom data to hdf5 files
 class GraspLegoEnv(RLEnv):

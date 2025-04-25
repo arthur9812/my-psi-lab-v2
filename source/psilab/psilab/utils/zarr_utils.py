@@ -608,6 +608,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     h5_dir = args.h5_dir
     zarr_dir = args.zarr_dir
+
     if not os.path.exists(zarr_dir):
         os.makedirs(zarr_dir, exist_ok= True)
 
@@ -630,12 +631,12 @@ if __name__ == "__main__":
 
         episode = dict()
         episode['timestamps'] = h5_file["timestamps"] # type: ignore
-        episode['action'] = h5_file["robots"]["robot1"]["actions"][:,[1,3,5,7,9,11,13,19,20,21,22,23,24]] # type: ignore
-        episode['arm2_pos'] = h5_file["robots"]["robot1"]["arm2_pos"] # type: ignore
-        episode['hand2_pos'] = h5_file["robots"]["robot1"]["hand2_pos"][:,:6] # type: ignore
-        episode['arm2_eef_pose'] = h5_file["robots"]["robot1"]["arm2_eef_pose"] # type: ignore
-        episode['base_camera_rgb'] = h5_file["robots"]["robot1"]["base_camera.rgb"] # type: ignore
-        episode['arm2_camera_rgb'] = h5_file["robots"]["robot1"]["arm2_camera.rgb"] # type: ignore
+        episode['action'] = h5_file["robots"]["robot"]["actions"][:,[1,3,5,7,9,11,13,19,20,21,22,23,24]] # type: ignore
+        episode['arm2_pos'] = h5_file["robots"]["robot"]["arm2_pos"] # type: ignore
+        episode['hand2_pos'] = h5_file["robots"]["robot"]["hand2_pos"][:,:6] # type: ignore
+        episode['arm2_eef_pose'] = h5_file["robots"]["robot"]["arm2_eef_pose"] # type: ignore
+        episode['base_camera_rgb'] = h5_file["robots"]["robot"]["base_camera.rgb"] # type: ignore
+        episode['arm2_camera_rgb'] = h5_file["robots"]["robot"]["arm2_camera.rgb"] # type: ignore
 
    
 

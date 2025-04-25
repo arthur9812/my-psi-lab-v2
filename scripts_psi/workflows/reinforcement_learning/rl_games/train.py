@@ -67,10 +67,9 @@ from isaaclab.utils.io import dump_pickle, dump_yaml
 """ Psi Modules  """ 
 # import psilab.tasks # noqa: F401
 import psilab_tasks
-from psilab.utils.config_utils import scene_cfg
 from psilab_tasks.utils import parse_scene_cfg,parse_rl_env_cfg
 
-# parse env config for isaac lab
+# parse argumanets for isaac lab rl env config
 env_cfg= parse_env_cfg(
     args_cli.task, 
     device=args_cli.device,
@@ -78,7 +77,7 @@ env_cfg= parse_env_cfg(
     # use_fabric=not args_cli.disable_fabric
     )
 
-# parse env config for psi lab
+# parse argumanets for psi lab rl env config
 env_cfg = parse_rl_env_cfg(
     env_cfg,
     args_cli.seed,
@@ -88,40 +87,13 @@ env_cfg = parse_rl_env_cfg(
     args_cli.sample_step
 )
 
-# 
+# parse argumanets for psi lab scene config
 env_cfg.scene = parse_scene_cfg(
     args_cli.task, 
     args_cli.enable_json,
     args_cli.json_file,
     args_cli.num_envs,
 )
-
-# # get scene config from json while "enable_json" is True
-# if args_cli.enable_json:
-    
-#     # get scene config from given file while "scene_file" is not None
-#     if args_cli.scene_file is not None:
-#         scene_json_path = args_cli.scene_file
-#     # otherwise,get scene config accordding to "scene_cfg_entry_point"
-#     else:
-#         scene_cfg_entry_point = gym.spec(args_cli.task).kwargs.get("scene_cfg_entry_point")
-#         # resolve path to the scene config location
-#         mod_name, file_name = scene_cfg_entry_point.split(":") # type: ignore
-#         mod_path = os.path.dirname(importlib.import_module(mod_name).__file__) # type: ignore
-#         scene_json_path = os.path.join(mod_path, file_name)
-#     scene_json = open(scene_json_path, 'r')
-#     scene_json = json.loads(scene_json.read())
-#     scene = scene_cfg(scene_json)
-# else:
-#     scene_cfg_entry_point = gym.spec(args_cli.task).kwargs.get("scene_cfg_entry_point")
-#     mod_name, attr_name = scene_cfg_entry_point.split(":") # type: ignore
-#     mod = importlib.import_module(mod_name)
-#     scene = getattr(mod, attr_name)
-
-# # 
-# scene.num_envs = args_cli.num_envs
-# # change scene attr of env config
-# env_cfg.scene = scene
 
 # clear camera configs in scene while "enable_cameras" flag is True
 if enable_cameras is False:
@@ -134,6 +106,9 @@ env = gym.make(args_cli.task, cfg=env_cfg)
 
 # parse agent configuration
 agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
+
+#
+agent_cfg["params"]["seed"] = args_cli.seed # type: ignore
 
 # specify directory for logging experiments
 log_root_path = os.path.join("logs", "rl_games", agent_cfg["params"]["config"]["name"]) # type: ignore

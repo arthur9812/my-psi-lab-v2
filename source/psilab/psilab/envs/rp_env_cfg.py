@@ -16,8 +16,10 @@ from psilab.envs.rl_env_cfg import RLEnvCfg
 @configclass
 class RPEnvCfg(RLEnvCfg):
     
-    h5_file : str = MISSING # type: ignore
+    hdf5_file : str = MISSING # type: ignore
     """ H5 file to replay. """
 
+    json_file : str = MISSING # type: ignore
+    """ Scene json config file. """
 
 

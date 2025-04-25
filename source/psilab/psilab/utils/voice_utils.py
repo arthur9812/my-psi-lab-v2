@@ -100,7 +100,7 @@ class ESpeak:
 
         def other_languages_list(text):
             n_text = text.strip()
-            print(text)
+            # print(text)
             if not text:
                 return []
             else:

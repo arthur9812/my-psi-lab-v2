@@ -62,16 +62,22 @@ def parse_rl_env_cfg(
     env_cfg.seed = seed # type: ignore
     env_cfg.enable_wandb = enable_wandb # type: ignore
     env_cfg.enable_output = enable_output # type: ignore
-    env_cfg.ouput_folder = ouput_folder # type: ignore
     env_cfg.sample_step = sample_step # type: ignore
+    if ouput_folder is not None:
+        env_cfg.ouput_folder = ouput_folder  # type: ignore
+
     #
     return env_cfg
 
 
 def parse_rp_env_cfg(
         env_cfg,
-        h5_file: str)->RPEnvCfg:
+        hdf5_file: str,
+        json_file: str
+        )->RPEnvCfg:
     # 
-    env_cfg.h5_file = h5_file
+    env_cfg.hdf5_file = hdf5_file
+    env_cfg.json_file = json_file
+
     #
     return env_cfg

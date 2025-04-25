@@ -17,7 +17,7 @@ from isaaclab.utils.configclass import class_to_dict
 """ Psilab Modules  """ 
 from psilab.utils.h5_utils import dict_to_h5,dict_to_cpu
 
-def create_empty_data(env, cfg) -> dict :
+def create_data_buffer(env, cfg) -> dict :
     data = {}
     # add time stamps
     data["timestamps"] = []
@@ -47,6 +47,7 @@ def create_empty_data(env, cfg) -> dict :
         data["robots"][robot_name]["extra"] = {
             "joint_name" : {},
             "joint_index" : {},
+            "cameras" : [],
         }
         # extra info: all joint
         data["robots"][robot_name]["extra"]["joint_name"]["all"] = robot.joint_names
@@ -54,6 +55,11 @@ def create_empty_data(env, cfg) -> dict :
         for actuator_name,actuator in robot.actuators.items():
             data["robots"][robot_name]["extra"]["joint_name"][actuator_name] = actuator.joint_names
             data["robots"][robot_name]["extra"]["joint_index"][actuator_name] = actuator.joint_indices
+        # extra info: cameras
+        for camera_name,camera in robot.cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                data["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
     # add rigid object
     data["rigid_objects"] = {}
     for object_name in env.scene.rigid_objects.keys():
@@ -71,7 +77,7 @@ def create_empty_data(env, cfg) -> dict :
     #
     return data
 
-def parse_step_data(data: dict, env, cfg) -> dict :
+def parse_data(data: dict, env, cfg) -> dict :
     # time stamps
     data["timestamps"].append(time.time())
     # robots
@@ -117,18 +123,18 @@ def parse_step_data(data: dict, env, cfg) -> dict :
 def save_data(data: dict, cfg):
     # 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"{timestamp}_data.hdf5"
+    filename = f"/{timestamp}_data.hdf5"
     # create folder if not exist
-    if not os.path.exists(cfg.ouput_folder):
-        os.makedirs(cfg.ouput_folder)
-    h5_file = h5py.File(cfg.ouput_folder+filename, 'w') # type: ignore
+    if not os.path.exists(cfg.output_folder):
+        os.makedirs(cfg.output_folder)
+    h5_file = h5py.File(cfg.output_folder+filename, 'w') # type: ignore
     # 
     aa = dict_to_cpu(data)
     dict_to_h5(aa,h5_file,"/")
     h5_file.close()
     # pass
     cfg_dict = class_to_dict(cfg.scene)
-    filename = f"{timestamp}_scene_config.json"
-    json_file = open(cfg.ouput_folder+filename,'w') # type: ignore
+    filename = f"/{timestamp}_scene_config.json"
+    json_file = open(cfg.output_folder+filename,'w') # type: ignore
     json.dump(cfg_dict,json_file,indent=4) 
     
