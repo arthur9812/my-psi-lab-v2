@@ -10,6 +10,7 @@ from collections.abc import Sequence
 
 """ Common Modules  """ 
 import torch
+import random
 
 """ Omniverse Modules  """ 
 import carb
@@ -18,7 +19,8 @@ from pxr import PhysxSchema
 
 """ IsaacSim Modules  """ 
 from isaacsim.core.prims import XFormPrim
-
+import isaacsim.core.utils.prims as prim_utils
+from isaaclab.sim.utils import clone, safe_set_attribute_on_usd_prim
 """ IsaacLab Modules  """ 
 import isaaclab.sim as sim_utils
 from isaaclab.scene.interactive_scene import InteractiveScene
@@ -170,18 +172,37 @@ class Scene(InteractiveScene):
                 continue
             # 
             if isinstance(random_cfg, LightRandomCfg):
+                
                 pass
             elif isinstance(random_cfg, dict):
                 # 
                 for sub_asset_name, sub_random_cfg in random_cfg.items():
-                    #
+                    # # light
+                    # for sub_asset_name, sub_random_cfg in random_cfg.items():
+                    #     self._extras[sub_asset_name].data
+                    # rigid
                     if isinstance(sub_random_cfg, RigidRandomCfg):
                         # 
                         if sub_asset_name not in self.cfg.rigid_objects_cfg.keys():
                             continue
-                        #
-                        if sub_random_cfg.fake_random:
-                            pass
+                        # position and orientation random
+                        if sub_random_cfg.random_type == "list":
+                            # random position
+                            if sub_random_cfg.random_position:
+                                index = random.randint(0,len(sub_random_cfg.position_list)-1) # type: ignore
+                                pos_base = list(self.cfg.rigid_objects_cfg[sub_asset_name].init_state.pos)
+                                pos = [pos_base[i] + sub_random_cfg.position_list[index][i] for i in range(3)] # type: ignore
+                                pos = torch.tensor(pos,device = self.device).unsqueeze(0).repeat(self.num_envs,1)  + self.env_origins # type: ignore
+                            else:
+                                pos = torch.tensor(self.cfg.rigid_objects_cfg[sub_asset_name].init_state.pos,device = self.device).unsqueeze(0).repeat(self.num_envs,1)  + self.env_origins
+                            # random orientation
+                            if sub_random_cfg.random_orientation:
+                                index = random.randint(0,len(sub_random_cfg.orientation_list)-1) # type: ignore
+                                ori = torch.tensor(sub_random_cfg.orientation_list[index],device = self.device).unsqueeze(0).repeat(self.num_envs,1) # type: ignore
+                            else:
+                                ori = torch.tensor(self.cfg.rigid_objects_cfg[sub_asset_name].init_state.rot,device=self.device).unsqueeze(0).repeat(self.num_envs,1) # type: ignore
+                            root_state = torch.cat((pos,ori,torch.zeros((self.num_envs,6),device=self.device)),1)
+                            self.rigid_objects[sub_asset_name].write_root_state_to_sim(root_state)
                         else:
                             # random position
                             if sub_random_cfg.random_position:
@@ -195,12 +216,48 @@ class Scene(InteractiveScene):
                                 ori = get_random_orientation(self.num_envs,self.device) # type: ignore
                             else:
                                 ori = torch.tensor(self.cfg.rigid_objects_cfg[sub_asset_name].init_state.rot,device=self.device).unsqueeze(0).repeat(self.num_envs,1) # type: ignore
-                            pose = torch.cat((pos,ori),1)
-                            self.rigid_objects[sub_asset_name].write_root_pose_to_sim(pose)
+                            root_state = torch.cat((pos,ori,torch.zeros((self.num_envs,6),device=self.device)),1)
+                            self.rigid_objects[sub_asset_name].write_root_state_to_sim(root_state)
                             # random material
-        pass
+                            # if sub_random_cfg.random_material
+                        # material random
+                        if sub_random_cfg.material_cfg is not None:
+                            if sub_random_cfg.material_cfg.enable_random: # type: ignore
+                                material_cfg = sub_random_cfg.material_cfg
+                                #
+                                shader_path = material_cfg.shader_path # type: ignore
+                                prim = prim_utils.get_prim_at_path(f"{shader_path}")
+                                #
+                                if material_cfg.material_type in ["color","colored_texture"] : # type: ignore
+                                    if material_cfg.random_type == "range": # type: ignore
+                                        color_range = material_cfg.color_range # type: ignore
+                                        color = [
+                                            random.randint(color_range[0][0],color_range[1][0]) /255.0, # type: ignore
+                                            random.randint(color_range[0][1],color_range[1][1]) /255.0, # type: ignore
+                                            random.randint(color_range[0][2],color_range[1][2]) /255.0, # type: ignore
+                                        ]
+                                        safe_set_attribute_on_usd_prim(prim, f"inputs:diffuse_color_constant", tuple(color), camel_case=False)
+                                        safe_set_attribute_on_usd_prim(prim, f"inputs:diffuse_tint", tuple(color), camel_case=False)
+                                        # clear texture
+                                        if material_cfg.material_type == "color":
+                                            texture = prim.GetAttribute('inputs:diffuse_texture')
+                                            texture.Set('')
 
-
+                                    elif material_cfg.random_type == "list": # type: ignore
+                                        index = random.randint(0,len(material_cfg.color_list)-1) # type: ignore
+                                        safe_set_attribute_on_usd_prim(prim, f"inputs:diffuse_color_constant", tuple(material_cfg.color_list[index]), camel_case=False) # type: ignore
+                                        safe_set_attribute_on_usd_prim(prim, f"inputs:diffuse_tint", tuple(material_cfg.color_list[index]), camel_case=False) # type: ignore
+                                        # clear texture
+                                        if material_cfg.material_type == "color":
+                                            texture = prim.GetAttribute('inputs:diffuse_texture')
+                                            texture.Set('')
+                                elif material_cfg.material_type in ["texture","colored_texture"]:
+                                    if len(material_cfg.texture_list)>0:
+                                        index = random.randint(0,len(material_cfg.texture_list)-1)
+                                        # set texture
+                                        texture = prim.GetAttribute('inputs:diffuse_texture')
+                                        texture.Set(material_cfg.texture_list[index])
+  
     def reset_to(
         self,
         state: dict[str, dict[str, dict[str, torch.Tensor]]],
@@ -255,7 +312,6 @@ class Scene(InteractiveScene):
         #     rigid_object.write_root_com_velocity_to_sim(root_velocity, env_ids=env_ids)
         # self.write_data_to_sim()
     
-
     def write_data_to_sim(self):
 
         super().write_data_to_sim()

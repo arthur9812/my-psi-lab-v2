@@ -6,4 +6,4 @@
 """Sub-package with utilities, data collectors and environment wrappers."""
 
 # from .importer import import_packages
-from .parse_cfg import parse_scene_cfg, parse_rl_env_cfg, parse_rp_env_cfg
+from .parse_cfg import parse_scene_cfg, parse_rl_env_cfg, parse_rp_env_cfg,parse_il_env_cfg

@@ -49,7 +49,9 @@ ROOM_SCENE_CFG = SceneCfg(
 
         # robot
         robots_cfg = {
-            "robot" : PSI_DC_01_CFG.replace(prim_path="/World/Robot"), # type: ignore
+            "robot" : PSI_DC_01_CFG.replace( # type: ignore
+                prim_path="/World/Robot",
+                diff_ik_controllers ={})
         },
         
         # static object
@@ -73,7 +75,9 @@ ROOM_SCENE_CFG = SceneCfg(
                     prim_path="/World/Table", 
                     spawn=sim_utils.UsdFileCfg(
                         usd_path=PSILAB_USD_ASSET_DIR + "/others/table_1157.usd",
-                        scale=(1.0, 1.0, 1.8),
+                        # scale=(1.0, 1.0, 1.8),
+                        scale=(1.0, 1.0, 2.0),
+
                         visual_material=None,
                         rigid_props=RigidBodyPropertiesCfg(
                             kinematic_enabled = True,
@@ -99,7 +103,9 @@ ROOM_SCENE_CFG = SceneCfg(
                         )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.0,0.0,0.85),
+                    pos=(0.0,-0.05,0.9),
+                    # pos=(0.0,0.0,0.9),
+
                     rot= (0.707, 0.707, 0.0, 0.0)
                     # rot= (1.0,0.0,0.0,0.0)
 
@@ -113,28 +119,28 @@ ROOM_SCENE_CFG = SceneCfg(
         
         # camera sensor
         cameras_cfg={
-            "eye_left": CameraCfg(
-                height=720,
-                width=1280,
-                data_types=['rgb'],
-                prim_path = "/World/CameraLeft",
-                spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
-                offset = CameraCfg().OffsetCfg(
-                    pos = (-0.3,0.033,1.6),
-                    rot = (1,0,0,0),
-                    convention='world')
-            ),
-            "eye_right": CameraCfg(
-                height=720,
-                width=1280,
-                data_types=['rgb'],
-                prim_path = "/World/CameraRight",
-                spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
-                offset = CameraCfg().OffsetCfg(
-                    pos = (-0.3,-0.033,1.6),
-                    rot = (1,0,0,0),
-                    convention='world')
-            ),
+            # "eye_left": CameraCfg(
+            #     height=720,
+            #     width=1280,
+            #     data_types=['rgb'],
+            #     prim_path = "/World/CameraLeft",
+            #     spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
+            #     offset = CameraCfg().OffsetCfg(
+            #         pos = (-0.3,0.033,1.6),
+            #         rot = (1,0,0,0),
+            #         convention='world')
+            # ),
+            # "eye_right": CameraCfg(
+            #     height=720,
+            #     width=1280,
+            #     data_types=['rgb'],
+            #     prim_path = "/World/CameraRight",
+            #     spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
+            #     offset = CameraCfg().OffsetCfg(
+            #         pos = (-0.3,-0.033,1.6),
+            #         rot = (1,0,0,0),
+            #         convention='world')
+            # ),
         },
         
         # contact sensor
@@ -157,20 +163,52 @@ ROOM_SCENE_CFG = SceneCfg(
 
         # debug marker
         marker_cfg = None,
-
+        # 
         random = RandomCfg(
             global_light_cfg = None,
             local_lights_cfg = None,
             rigid_objects_cfg = {
                 "bottle": RigidRandomCfg(
                     random_type="range",
-                    random_position=False,
-                    random_orientation=False,
+                    random_position=True,
+                    random_orientation=True,
                     random_material=False,
-                    position_range=[0.1,0.1,0.1],
-                    material_cfg=None
+                    position_range=[0.1,0.1,0.0],
+                    position_list=[
+                        [0.1,0.0,0.0],
+                        [0.0,0.1,0.0],
+                        [-0.1,0.0,0.0],
+                        [0.0,-0.1,0.0],
+                    ],
+                    orientation_list=[
+                        [0.707, 0.707, 0.0, 0.0],
+                        [0.707, 0.0, 0.707, 0.0],
+                        [0.707, 0.0, 0.0, 0.707]
+                    ],
+                    material_cfg = MaterialRandomCfg(
+                        enable_random= True,
+                        shader_path="/World/Bottle/Looks/material_0/material_0",
+                        random_type="range",
+                        material_type = "colored_texture",
+                        color_range=[
+                            [0,0,0],
+                            [255,255,255]
+                        ], # type: ignore
+                        color_list = [
+                            [0,32,54],
+                            [231,65,0],
+                            [21,123,10],
+                        ], # type: ignore
+                        texture_list =[
+                            "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/others/drink-B36-V1/textures/B36.jpg",
+                            "/home/admin01/下载/20250311-092148.jpg",
+                            "/home/admin01/下载/20250311-092142.jpg",
+                            "/home/admin01/下载/20250311-092135.jpg",
+                        ]
+                    )
                 )
             },
+
 
         )
 

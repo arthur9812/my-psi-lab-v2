@@ -15,11 +15,21 @@ import torch.nn.functional as F
 
 # Add Diffusion Policy Project Path
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
-sys.path.append("/home/admin01/Work/00-DiffusionPolicy/diffusion_policy") 
+sys.path.append("/home/admin01/Work/02-DiffusionPolicy/diffusion_policy") 
 
 from diffusion_policy.workspace.base_workspace import BaseWorkspace
 from diffusion_policy.policy.base_image_policy import BaseImagePolicy
 from psi_dp.workspace.train_diffusion_transformer_timm_workspace import TrainDiffusionTransformerTimmWorkspace
+
+# sys.path.append("/home/admin01/桌面/Work/00-DiffusionPolicy/diffusion_policy") 
+
+
+# from diffusion_policy.workspace.base_workspace import BaseWorkspace
+# from diffusion_policy.policy.base_image_policy import BaseImagePolicy
+
+# from diffusion_policy.workspace.base_workspace import BaseWorkspace
+# from diffusion_policy.policy.base_image_policy import BaseImagePolicy
+# from psi_dp.workspace.train_diffusion_transformer_timm_workspace import TrainDiffusionTransformerTimmWorkspace
 
 #1.load policy （base policy and res policy）
 def load_diffusion_policy_model(checkpoint_path):
@@ -63,18 +73,12 @@ def load_diffusion_policy_model(checkpoint_path):
     return policy
 
 def process_image(img:torch.Tensor):
-    # # 转换为torch tensor并保持float类型
-    # print(isinstance(img, torch.Tensor))
-    # if isinstance(img, torch.Tensor):
-    #     img = img[..., :3].float()  # 只保留RGB通道
-    # else:
-    #     img = torch.from_numpy(img[..., :3]).float()  # 转换为tensor并保留RGB通道
     
     # 只保留RGB通道
     img = img[...,:3].float()  
     # 调整通道顺序 [H, W, C] -> [C, H, W]
-    img = img.permute(2, 0, 1)  
-    # img = img.permute(2, 1, 0)  # 调整通道顺序
+    # img = img.permute(0, 3, 1, 2)  
+    img = img.permute(2, 1, 0)  # 调整通道顺序
 
     # 归一化到[0,1]并调整尺寸
     img = F.interpolate(
@@ -83,13 +87,6 @@ def process_image(img:torch.Tensor):
         mode='bilinear',
         align_corners=False
     )
-    # # 归一化到[0,1]并调整尺寸
-    # img = F.interpolate(
-    #     img.unsqueeze(0) / 255.0,  # 添加batch维度并归一化
-    #     size=(224, 224),           # 调整到模型期望的尺寸
-    #     mode='bilinear',
-    #     align_corners=False
-    # ).squeeze(0)  # 移除batch维度
-    # print(f"Final processed image shape: {img.shape}")
+
     return img
 

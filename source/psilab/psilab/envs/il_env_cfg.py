@@ -17,7 +17,14 @@ class ILEnvCfg(RLEnvCfg):
     """Configuration for an imitation learning environment.
     """
     
-    pass
+    max_step : int = MISSING  # type: ignore
+    """ The max step to reset envs """
+
+    policy : str = MISSING  # type: ignore
+    """ The policy used to compute actions or trajectory according to observations """
+
+    max_episode : int = MISSING  # type: ignore
+    """ The policy used to compute actions or trajectory according to observations """
 
 
 

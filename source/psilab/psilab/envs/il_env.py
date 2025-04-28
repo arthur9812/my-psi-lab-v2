@@ -9,6 +9,7 @@ from typing import Any
 
 """ Common Modules  """
 import torch
+from datetime import datetime
 
 """ Omniverse Modules  """ 
 import omni.kit.app
@@ -19,6 +20,7 @@ from isaaclab.envs.common import VecEnvStepReturn
 """ PsiLab Modules  """ 
 from psilab.envs.il_env_cfg import ILEnvCfg
 from psilab.envs.rl_env import RLEnv
+from psilab.utils.data_collect_utils import create_data_buffer
 
 class ILEnv(RLEnv):
     """The imitation learning basic environment class."""
@@ -29,8 +31,13 @@ class ILEnv(RLEnv):
         #
         self.cfg = cfg
         # 
-        self._data = {}
-        
+        self._data : dict = None # type: ignore
+        #
+        self._is_runing : bool = True
+        # change output folder with date and time
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.cfg.output_folder+=f"/{timestamp}" # type: ignore
+
         # fake state
         self._obs_zero = {
             "policy":torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device), # type: ignore
@@ -68,10 +75,13 @@ class ILEnv(RLEnv):
         # reset scene
         self.scene.reset()
         # clear data
-        self._data = {}
-        # 
+        self._data = create_data_buffer(self,self.cfg)
+        # clear cuda cache
+        torch.cuda.empty_cache()
         return super().reset()
 
+    def is_runing(self):
+        return self._is_runing
     """
     Functions for RL env which is useless in IL env
     """

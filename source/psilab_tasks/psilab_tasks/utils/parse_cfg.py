@@ -70,6 +70,32 @@ def parse_rl_env_cfg(
     return env_cfg
 
 
+def parse_il_env_cfg(
+        env_cfg,
+        seed: int | None = None,
+        enable_wandb: bool = False,
+        enable_output: bool = False,
+        ouput_folder: str | None = None,
+        sample_step: int = 1,
+        policy: str | None = None,
+        max_step: int = 1, 
+        max_episode: int = 1, 
+        )->ILEnvCfg:
+    # 
+    env_cfg.seed = seed # type: ignore
+    env_cfg.enable_wandb = enable_wandb # type: ignore
+    env_cfg.enable_output = enable_output # type: ignore
+    env_cfg.sample_step = sample_step # type: ignore
+    env_cfg.policy = policy # type: ignore
+    env_cfg.max_step = max_step # type: ignore
+    env_cfg.max_episode = max_episode # type: ignore
+    if ouput_folder is not None:
+        env_cfg.ouput_folder = ouput_folder  # type: ignore
+
+    #
+    return env_cfg
+
+
 def parse_rp_env_cfg(
         env_cfg,
         hdf5_file: str,

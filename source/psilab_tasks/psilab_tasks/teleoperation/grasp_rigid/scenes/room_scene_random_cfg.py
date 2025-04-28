@@ -25,7 +25,7 @@ from isaaclab.assets import (
 from psilab import PSILAB_USD_ASSET_DIR
 from psilab.configs.robots.psi_dc_01 import PSI_DC_01_CFG
 from psilab.scene.sence_cfg import SceneCfg
-from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
+from psilab.random.random_cfg import RandomCfg,RigidRandomCfg
 
 
 
@@ -45,7 +45,12 @@ ROOM_SCENE_CFG = SceneCfg(
         ),
 
         # local light
-        local_lights_cfg={},
+        local_lights_cfg={
+            "Rect_Lights" : AssetBaseCfg(
+                prim_path="/World/Lights/RectLight_.*", 
+                spawn=None
+            )
+        },
 
         # robot
         robots_cfg = {
@@ -163,12 +168,11 @@ ROOM_SCENE_CFG = SceneCfg(
             local_lights_cfg = None,
             rigid_objects_cfg = {
                 "bottle": RigidRandomCfg(
-                    random_type="range",
+                    fake_random=False,
                     random_position=False,
                     random_orientation=False,
                     random_material=False,
-                    position_range=[0.1,0.1,0.1],
-                    material_cfg=None
+                    position_range=[0.1,0.1,0.1]
                 )
             },
 

@@ -3,8 +3,6 @@
 # Date: 2025-04-16
 # Vesion: 1.0
 
-
-
 """ Arguments parse """
 import argparse
 
@@ -13,10 +11,19 @@ parser = argparse.ArgumentParser(description="This script demonstrates lego gras
 
 parser.add_argument("--task", type=str, default="", help="Name of the task.")
 parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
-parser.add_argument("--scene_json", type=str, default="", help="Name of the task.")
-parser.add_argument("--output_dir", type=str, default=None, help="Path to model checkpoint.")
-parser.add_argument("--enable_wandb", action="store_true", default=False, help="Update Data to Wandb.")
-parser.add_argument("--save_data", action="store_true", default=False, help="Update Data to Wandb.")
+parser.add_argument("--seed", type=int, default=42, help="Seed used for the environment")
+
+
+# add argparse arguments from Psi
+parser.add_argument("--enable_wandb", action="store_true", default=False, help="Whether update data to wandb or not.")
+parser.add_argument("--enable_json", action="store_true", default=False, help="Whether create scene from json or not.")
+parser.add_argument("--json_file", type=str, default=None, help="Scene json file.")
+parser.add_argument("--enable_output", action="store_true", default=False, help="Whether output data to hdf5 files or not.")
+parser.add_argument("--output_folder", type=str, default=None, help="Hdf5 files folder.")
+parser.add_argument("--sample_step", type=int, default=1, help="Simulation steps per sample step") 
+parser.add_argument("--policy", type=str, default=None, help="The policy to load and predict") 
+parser.add_argument("--max_step", type=int, default=None, help="The max step to reset") 
+parser.add_argument("--max_episode", type=int, default=None, help="The max episode to to run") 
 
 """ Must First Start APP, or import omni.isaac.lab.sim as sim_utils will be error."""
 from isaaclab.app import AppLauncher
@@ -25,6 +32,9 @@ from isaaclab.app import AppLauncher
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
+
+# store args befor create app as it will pop some arg from args_cli
+enable_cameras = args_cli.enable_cameras
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -48,7 +58,6 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 from isaaclab.utils.io import dump_pickle, dump_yaml
 
 import isaaclab_tasks  # noqa: F401
-print('isaaclab_tasks.direct' in sys.modules)
 from psilab.envs.tp_env import TPEnv
 
 """ Psi RL Modules  """ 
@@ -56,41 +65,53 @@ from psilab.envs.tp_env import TPEnv
 import psilab_tasks
 
 from psilab.envs.tp_env import TPEnv
-from psilab.utils.config_utils import scene_cfg
-
+from psilab_tasks.utils import parse_scene_cfg,parse_il_env_cfg
+# from psilab.utils.global_variants import GlobalVariant
 # from psilab.envs.tp_env import TPEnvDataCollectWrapper
 # create env
 
 
 
+# parse argumanets for isaac lab rl env config
 env_cfg= parse_env_cfg(
     args_cli.task, 
     device=args_cli.device,
-    num_envs=1,
+    num_envs=args_cli.num_envs,
     # use_fabric=not args_cli.disable_fabric
     )
 
-# 
-env_cfg.enable_wandb = args_cli.enable_wandb # type: ignore
-env_cfg.save_data = args_cli.save_data # type: ignore
+# parse argumanets for psi lab il env config
+env_cfg = parse_il_env_cfg(
+    env_cfg,
+    args_cli.seed,
+    args_cli.enable_wandb,
+    args_cli.enable_output,
+    args_cli.output_folder,
+    args_cli.sample_step,
+    args_cli.policy,
+    args_cli.max_step
+)
 
+# parse argumanets for psi lab scene config
+env_cfg.scene = parse_scene_cfg(
+    args_cli.task, 
+    args_cli.enable_json,
+    args_cli.json_file,
+    args_cli.num_envs,
+)
 
-scene_json = open(args_cli.scene_json, 'r')
-scene_json = json.loads(scene_json.read())
-env_cfg.scene = scene_cfg(scene_json)
+# clear camera configs in scene while "enable_cameras" flag is True
+if enable_cameras is False:
+    env_cfg.scene.cameras_cfg ={}
+    for robot_cfg in env_cfg.scene.robots_cfg.values():
+        robot_cfg.cameras = {} # type: ignore
 
+# create env      
 env = gym.make(args_cli.task, cfg=env_cfg)
-
+# reset env
 env.reset()
+#
 
-# env = type(TPEnv)env
-# print(isinstance(env,TPEnv))
-# env = TPEnvWrapper(env) # type: ignore
-# wrap around environment for rl-games
-# env = TPEnvDataCollectWrapper(env) # type: ignore
-# env.run()
-# pass
-# 
 
 while(True):
     #

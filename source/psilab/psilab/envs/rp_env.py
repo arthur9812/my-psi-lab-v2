@@ -59,6 +59,11 @@ class RPEnv(RLEnv):
 
         # robots
         for robot_name in list(self._hdf5_file["/robots"].keys()): # type: ignore
+            # 
+            # action = torch.tensor(self._hdf5_file["/robots/"+robot_name+"/action"][:][self._step],device="cuda:0").unsqueeze(0)# type: ignore
+            # print(action)
+            # self.scene.robots[robot_name].set_joint_position_target(action)
+            # self.scene.robots[robot_name].write_data_to_sim()
             # joints
             for joint_group_name in self._hdf5_file["/robots/"+robot_name+"/extra/joint_name"]:
                 if joint_group_name=="all":

@@ -65,7 +65,7 @@ class GraspRigidEnvCfg(TPEnvCfg):
 
     # fake params which is useless
     episode_length_s = 1 * 210 / 60.0
-    decimation = 2
+    decimation = 1
     action_scale = 0.5
     action_space = 13
     observation_space = 130
@@ -273,15 +273,26 @@ class GraspRigidEnv(TPEnv):
         if self._vuer.bReset:
             self._vuer.reset()
             self.reset()
+        
         # finishe
         # if self.vuer.bFinished:
         #     save_data(self._data,self.cfg)
         #     self.reset()
+
+        # joint_pos = self._robot.data.joint_pos_target.clone()
+        # print(joint_pos[:,0])
+        # joint_pos[:,0]+=0.1
+        # # joint_pos_target = torch.zeros_like(joint_pos)
+        # self._robot.set_joint_position_target(joint_pos)
+        
+
+
         # self._vuer.bRecording = True
 
         # if self._timer.run_time()>5:
         #     save_data(self._data,self.cfg)
         #     pass
+        
         # set image of vuer from sim
         image_left = (self.scene.cameras["eye_left"].data.output["rgb"])[0]
         image_right = (self.scene.cameras["eye_right"].data.output["rgb"])[0]

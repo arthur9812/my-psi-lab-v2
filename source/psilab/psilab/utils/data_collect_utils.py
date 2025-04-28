@@ -26,7 +26,7 @@ def create_data_buffer(env, cfg) -> dict :
     for robot_name,robot in env.scene.robots.items():
         data["robots"][robot_name] = {}
         # actions
-        data["robots"][robot_name]["actions"] = []
+        data["robots"][robot_name]["action"] = []
         # add actuators
         for actuator_name in robot.actuators.keys():
             data["robots"][robot_name][actuator_name+"_pos"] = []
@@ -82,8 +82,8 @@ def parse_data(data: dict, env, cfg) -> dict :
     data["timestamps"].append(time.time())
     # robots
     for robot_name,robot in env.scene.robots.items():
-        # actions
-        data["robots"][robot_name]["actions"].append(robot.data.joint_pos_target[0,:])
+        # action
+        data["robots"][robot_name]["action"].append(robot.data.joint_pos_target[0,:].clone())
         # add actuators
         for actuator_name,actuator in robot.actuators.items():
             data["robots"][robot_name][actuator_name+"_pos"].append(robot.data.joint_pos[0,actuator.joint_indices])

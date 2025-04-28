@@ -5,20 +5,23 @@
 
 """ Python Modules  """ 
 from dataclasses import MISSING
+from typing import Literal
 
 """ IsaacLab Modules  """ 
 from isaaclab.utils.configclass import configclass
 
+""" PsiLab Modules  """ 
+from psilab.random.material_random_cfg import MaterialRandomCfg
 
 @configclass
 class RigidRandomCfg():
     """Configuration for rigid random options."""
 
-    fake_random : bool =  MISSING # type: ignore
+    random_type : Literal["range", "list"]  = MISSING # type: ignore
     """Configuration for light random options.
 
-    - ``True``: parameters are random within the given range.
-    - ``False``: parameters are random selected from the given list.
+    - ``range``: parameters are random within the given range.
+    - ``list``: parameters are random selected from the given list.
     """
 
     random_position : bool =  MISSING # type: ignore
@@ -40,6 +43,7 @@ class RigidRandomCfg():
     orientation_list : None | list[list[float,float,float,float]] =  None # type: ignore
     """The orientation list which is [w,x,y,z],...]."""
     
-    # materials : None | list[list[float,float,float,float]] =  MISSING # type: ignore
+    material_cfg : None | MaterialRandomCfg =  None # type: ignore
+    """The material random config."""
 
     

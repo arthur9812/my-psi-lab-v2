@@ -1,5 +1,5 @@
 import gymnasium as gym
-
+from . import scenes
 
 ##
 # Register Gym environments.
@@ -11,5 +11,7 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.grasp_rigid_env:GraspRigidEnvCfg",
+        # "scene_cfg_entry_point":f"{scenes.__name__}:room_scene_cfg.json",
+        "scene_cfg_entry_point":f"{scenes.__name__}.room_scene_cfg:ROOM_SCENE_CFG",
     },
 )

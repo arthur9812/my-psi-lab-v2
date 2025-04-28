@@ -12,6 +12,7 @@ from isaaclab.utils.configclass import configclass
 """ PsiLab Modules  """ 
 from psilab.random.rigid_random_cfg import RigidRandomCfg
 from psilab.random.light_random_cfg import LightRandomCfg
+from psilab.random.material_random_cfg import MaterialRandomCfg
 
 @configclass
 class RandomCfg():
