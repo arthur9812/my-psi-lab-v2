@@ -179,7 +179,7 @@ EMPTY_SCENE_CFG = SceneCfg(
             local_lights_cfg = None,
             rigid_objects_cfg = {
                 "lego": RigidRandomCfg(
-                    fake_random=False,
+                    random_type="range",
                     random_position=True,
                     random_orientation=True,
                     random_material=False,

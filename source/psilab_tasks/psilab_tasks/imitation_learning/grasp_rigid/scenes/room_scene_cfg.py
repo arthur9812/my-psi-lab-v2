@@ -171,7 +171,7 @@ ROOM_SCENE_CFG = SceneCfg(
                 "bottle": RigidRandomCfg(
                     random_type="range",
                     random_position=True,
-                    random_orientation=True,
+                    random_orientation=False,
                     random_material=False,
                     position_range=[0.1,0.1,0.0],
                     position_list=[
@@ -186,7 +186,7 @@ ROOM_SCENE_CFG = SceneCfg(
                         [0.707, 0.0, 0.0, 0.707]
                     ],
                     material_cfg = MaterialRandomCfg(
-                        enable_random= True,
+                        enable_random= False,
                         shader_path="/World/Bottle/Looks/material_0/material_0",
                         random_type="range",
                         material_type = "colored_texture",

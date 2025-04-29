@@ -431,7 +431,7 @@ def rigid_random_cfg(data:dict)->RigidRandomCfg:
             setattr(cfg,key,None)
             continue
         if key in [
-            "fake_random",
+            "random_type",
             "random_position",
             "random_orientation",
             "random_material",

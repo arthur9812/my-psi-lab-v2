@@ -9,6 +9,7 @@ import isaaclab.sim as sim_utils
 from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 from isaaclab.sensors.camera.camera_cfg import CameraCfg
+from isaaclab.sensors.camera.tiled_camera_cfg import TiledCameraCfg
 
 """ PsiLab Modules """
 from psilab import PSILAB_USD_ASSET_DIR
@@ -21,10 +22,11 @@ PSI_DC_01_CFG = RobotBaseCfg(
     prim_path = MISSING, # type: ignore
     
     spawn=sim_utils.UsdFileCfg(
-        usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned.usd",
+        usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned_OneArm.usd",
+        # usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned.usd",
         activate_contact_sensors = True,
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-            enabled_self_collisions=True,
+            enabled_self_collisions=False,
         ),
     ),
 
@@ -39,21 +41,21 @@ PSI_DC_01_CFG = RobotBaseCfg(
             "arm1_joint_link5": 0.30,
             "arm1_joint_link6": -1.03,
             "arm1_joint_link7": 1.35,
-            "arm2_joint_link1": 0.24,
-            "arm2_joint_link2": -0.64,
-            "arm2_joint_link3": 1.52,
-            "arm2_joint_link4": -0.81,
-            "arm2_joint_link5": -0.30,
-            "arm2_joint_link6": -1.03,
-            "arm2_joint_link7": -0.36,
+            # "arm2_joint_link1": 0.24,
+            # "arm2_joint_link2": -0.64,
+            # "arm2_joint_link3": 1.52,
+            # "arm2_joint_link4": -0.81,
+            # "arm2_joint_link5": -0.30,
+            # "arm2_joint_link6": -1.03,
+            # "arm2_joint_link7": -0.36,
             
-            # "arm2_joint_link1": -0.6788,
-            # "arm2_joint_link2": -2.0619,
-            # "arm2_joint_link3": 1.1697,
-            # "arm2_joint_link4": -2.2370,
-            # "arm2_joint_link5": -0.9471,
-            # "arm2_joint_link6": 0.10971,
-            # "arm2_joint_link7": -1.1421163,
+            "arm2_joint_link1": -0.6788,
+            "arm2_joint_link2": -2.0619,
+            "arm2_joint_link3": 1.1697,
+            "arm2_joint_link4": -2.2370,
+            "arm2_joint_link5": -0.9471,
+            "arm2_joint_link6": 0.10971,
+            "arm2_joint_link7": -1.1421163,
             # "arm2_joint_link1": -0.7081,
             # "arm2_joint_link2": -2.2690,
             # "arm2_joint_link3": 1.1912,
@@ -87,20 +89,20 @@ PSI_DC_01_CFG = RobotBaseCfg(
     ),
                     
     actuators={
-        "arm1": ImplicitActuatorCfg(
-            joint_names_expr=[
-                "arm1_joint_link1",
-                "arm1_joint_link2",
-                "arm1_joint_link3",
-                "arm1_joint_link4",
-                "arm1_joint_link5",
-                "arm1_joint_link6",
-                "arm1_joint_link7",
-                ],
-            stiffness=None,
-            damping=None,
+        # "arm1": ImplicitActuatorCfg(
+        #     joint_names_expr=[
+        #         "arm1_joint_link1",
+        #         "arm1_joint_link2",
+        #         "arm1_joint_link3",
+        #         "arm1_joint_link4",
+        #         "arm1_joint_link5",
+        #         "arm1_joint_link6",
+        #         "arm1_joint_link7",
+        #         ],
+        #     stiffness=None,
+        #     damping=None,
 
-        ),
+        # ),
         "arm2": ImplicitActuatorCfg(
             joint_names_expr=[
                 "arm2_joint_link1",
@@ -114,23 +116,23 @@ PSI_DC_01_CFG = RobotBaseCfg(
             stiffness=None,
             damping=None,
         ),
-        "hand1": ImplicitActuatorCfg(
-            joint_names_expr=[
-                "hand1_joint_link_1_1",
-                "hand1_joint_link_1_2",
-                "hand1_joint_link_1_3",
-                "hand1_joint_link_2_1",
-                "hand1_joint_link_2_2",
-                "hand1_joint_link_3_1",
-                "hand1_joint_link_3_2",
-                "hand1_joint_link_4_1",
-                "hand1_joint_link_4_2",
-                "hand1_joint_link_5_1",
-                "hand1_joint_link_5_2"],
-            stiffness=None,
-            damping=None,
+        # "hand1": ImplicitActuatorCfg(
+        #     joint_names_expr=[
+        #         "hand1_joint_link_1_1",
+        #         "hand1_joint_link_1_2",
+        #         "hand1_joint_link_1_3",
+        #         "hand1_joint_link_2_1",
+        #         "hand1_joint_link_2_2",
+        #         "hand1_joint_link_3_1",
+        #         "hand1_joint_link_3_2",
+        #         "hand1_joint_link_4_1",
+        #         "hand1_joint_link_4_2",
+        #         "hand1_joint_link_5_1",
+        #         "hand1_joint_link_5_2"],
+        #     stiffness=None,
+        #     damping=None,
 
-        ),
+        # ),
         "hand2": ImplicitActuatorCfg(
             joint_names_expr=[
                 "hand2_joint_link_1_1",
@@ -184,27 +186,46 @@ PSI_DC_01_CFG = RobotBaseCfg(
     },
 
     cameras = {
-        "base_camera": CameraCfg(
-            prim_path="/World/Robot/base_camera_rgb/base_camera_rgb",
-            height=224,
-            width=224,
+        "base_camera": TiledCameraCfg(
+            prim_path="/World/envs/env_[0-9]+/Robot/base_camera_rgb/base_camera_rgb",
+            height=480,
+            width=640,
+        # "base_camera": CameraCfg(
+        #     prim_path="/World/Robot/base_camera_rgb/base_camera_rgb",
+        #     height=224,
+        #     width=224,
             data_types=["rgb"],
             spawn=None
         ),
-        "arm1_camera": CameraCfg(
-            prim_path="/World/Robot/arm1_camera_rgb/arm1_camera_rgb",
-            height=224,
-            width=224,
-            data_types=["rgb"],
-            spawn=None
-        ),
-        "arm2_camera": CameraCfg(
-            prim_path="/World/Robot/arm2_camera_rgb/arm2_camera_rgb",
-            height=224,
-            width=224,
+        # "arm1_camera": CameraCfg(
+        #     prim_path="/World/Robot/arm1_camera_rgb/arm1_camera_rgb",
+        #     height=224,
+        #     width=224,
+        #     data_types=["rgb"],
+        #     spawn=None
+        # ),
+        "arm2_camera": TiledCameraCfg(
+            prim_path="/World/envs/env_[0-9]+/Robot/arm2_camera_rgb/arm2_camera_rgb",
+            height=480,
+            width=640,
+        # "arm2_camera": CameraCfg(
+        #     prim_path="/World/Robot/arm2_camera_rgb/arm2_camera_rgb",
+        #     height=224,
+        #     width=224,
             data_types=["rgb"],
             spawn=None
         )
     }
 
 )
+# TiledCameraCfg(
+            #     prim_path="/World/envs/env_[0-9]+/top_camera",
+            #     offset = TiledCameraCfg.OffsetCfg(
+            #         pos = (0.2,0.0,1.6),
+            #         rot = (0.707,0.0,0.707,0.0),
+            #         convention = "world"
+            #     ),
+            #     data_types=["rgb"],
+            #     width=1280,
+            #     height=720,
+            #     spawn=PinholeCameraCfg(),

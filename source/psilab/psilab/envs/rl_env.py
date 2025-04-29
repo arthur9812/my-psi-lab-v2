@@ -40,6 +40,8 @@ from isaaclab.utils.timer import Timer
 """ Psilab Modules  """ 
 from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.scene.sence import Scene
+# from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env
+from psilab.utils.data_collect_utils import create_data_buffer,parse_data
 
 class RLEnv(gym.Env):
     """The superclass for the direct workflow to design environments.
@@ -184,6 +186,10 @@ class RLEnv(gym.Env):
         # allocate dictionary to store metrics
         self.extras = {}
 
+        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
+        self._data = {}
+        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, End
+
         # initialize data and constants
         # -- counter for simulation steps
         self._sim_step_counter = 0
@@ -304,6 +310,14 @@ class RLEnv(gym.Env):
             while SimulationManager.assets_loading():
                 self.sim.render()
 
+        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
+        # clear data
+        if self.cfg.enable_output:
+            self._data = create_data_buffer(self,self.cfg)
+            # clear cuda cache
+            torch.cuda.empty_cache()
+        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
+
         # return observations
         return self._get_observations(), self.extras
 
@@ -384,6 +398,9 @@ class RLEnv(gym.Env):
             # (scene_update_finish - sim_step_finish)*1000,
             #     )
             # )
+            # output data
+            if self.cfg.enable_output and self._sim_step_counter % self.cfg.sample_step == 0:
+                parse_data(self._data,self,self.cfg)
 
         # apply_action_end = time.time()
 

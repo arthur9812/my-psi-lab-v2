@@ -14,12 +14,14 @@ class WandbLog(metaclass=SingletonMeta):
     def __init__(self):
         self.log_data : dict[ str, float]= {} # type: ignore 
         self.step : int = 0
+        self._init = False
 
 
     def init_wandb(self, project:str, name:str):
         wandb.init(project=project, name=name)  
         self.project = project
         self.name = name
+        self._init = True
         
     def set_data(self, key:str, value:float):
         self.log_data[key] = value
@@ -32,7 +34,7 @@ class WandbLog(metaclass=SingletonMeta):
     
     def upload(self,key:str):
 
-        if key not in self.log_data.keys():
+        if key not in self.log_data.keys() or not self._init:
             return
         # if len(self.log_data.keys())==0:
         #     return
