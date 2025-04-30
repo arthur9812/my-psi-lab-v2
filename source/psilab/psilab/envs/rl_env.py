@@ -40,7 +40,7 @@ from isaaclab.utils.timer import Timer
 """ Psilab Modules  """ 
 from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.scene.sence import Scene
-# from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env
+from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env
 from psilab.utils.data_collect_utils import create_data_buffer,parse_data
 
 class RLEnv(gym.Env):
@@ -312,10 +312,13 @@ class RLEnv(gym.Env):
 
         #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
         # clear data
-        if self.cfg.enable_output:
-            self._data = create_data_buffer(self,self.cfg)
-            # clear cuda cache
-            torch.cuda.empty_cache()
+        # if self.cfg.enable_output:
+        #     # single env
+        #     # self._data = create_data_buffer(self,self.cfg)
+        #     # multi env
+        #     self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+        #     # clear cuda cache
+        #     torch.cuda.empty_cache()
         #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
 
         # return observations
@@ -400,7 +403,11 @@ class RLEnv(gym.Env):
             # )
             # output data
             if self.cfg.enable_output and self._sim_step_counter % self.cfg.sample_step == 0:
-                parse_data(self._data,self,self.cfg)
+                # single
+                # parse_data(self._data,self,self.cfg)
+                # multi
+                parse_data_muilt_env(self._data,self,self.cfg,self.scene.num_envs)
+
 
         # apply_action_end = time.time()
 

@@ -16,6 +16,14 @@ import random
 """ Isaac Sim Modules  """ 
 import isaacsim.core.utils.torch as torch_utils
 from isaacsim.core.utils.torch.rotations import compute_heading_and_up, compute_rot, quat_conjugate
+import isaacsim.core.utils.prims as prim_utils
+from isaaclab.sim.utils import clone, safe_set_attribute_on_usd_prim
+from isaacsim.core.utils.prims import get_prim_at_path
+# from Isaac Sim 4.2 onwards, pxr.Semantics is deprecated
+try:
+    import Semantics
+except ModuleNotFoundError:
+    from pxr import Semantics
 
 """ Isaac Lab Modules  """ 
 from isaaclab.sim import SimulationCfg,PhysxCfg,RenderCfg
@@ -32,15 +40,16 @@ from psilab.utils.timer_utils import Timer
 # from psilab.utils.data_collect_utils import create_data_buffer,parse_data,save_data_muilt_env
 from psilab.utils.data_collect_utils import create_data_buffer,parse_data,save_data
 from psilab.eval.grasp_rigid import eval_success,eval_fail
+from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env,save_data_muilt_env
 
-rigid_list = ["lego","bottle"]
+
 
 @configclass
 class GraspRigidEnvCfg(RLEnvCfg):
     """Configuration for RL environment."""
 
     # params
-    episode_length_s = 1.5 * 210 / 60.0
+    episode_length_s = 1.0 * 210 / 60.0
     decimation = 2
     action_scale = 0.5
     action_space = 13
@@ -64,10 +73,10 @@ class GraspRigidEnvCfg(RLEnvCfg):
             max_velocity_iteration_count = 0,
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
-            gpu_max_rigid_patch_count = 4096 * 4096,
-            # gpu_collision_stack_size=2100000000,
-            gpu_found_lost_pairs_capacity = 137401003,
-            gpu_collision_stack_size = 1991632424
+            # gpu_max_rigid_patch_count = 4096 * 4096,
+            # # gpu_collision_stack_size=2100000000,
+            # gpu_found_lost_pairs_capacity = 137401003,
+            # gpu_collision_stack_size = 191632424
 
         ),
         render=RenderCfg(),
@@ -84,6 +93,27 @@ class GraspRigidEnv(RLEnv):
     cfg: GraspRigidEnvCfg
 
     def __init__(self, cfg: GraspRigidEnvCfg, render_mode: str | None = None, **kwargs):
+        
+
+        # 设置刚体默认位置
+        self._rigid_list = ["target1","bottle"]
+        self._rigid_select_list = []
+        self._target_name = "target1"
+        
+        self._pos_base = [2.0,0.0,0.5]
+        self._pos_base_x = [-2.0,-1.0,0,1.0,2.0]
+        self._pos_base_y = [-2.0,-1.0,0,1.0,2.0]
+
+        for i in range(4):
+            for j in range(5):
+                cfg.scene.rigid_objects_cfg[f"target{i*5+j+1}"].init_state.pos = (
+                    self._pos_base[0]+self._pos_base_x[i],
+                    self._pos_base[1]+self._pos_base_y[j],
+                    self._pos_base[2]
+                )
+                cfg.scene.rigid_objects_cfg[f"target{i*5+j+1}"].spawn.visual_material.diffuse_color = (random.random(),random.random(),random.random()) # type: ignore
+
+
 
         super().__init__(cfg, render_mode, **kwargs)
 
@@ -94,7 +124,7 @@ class GraspRigidEnv(RLEnv):
 
         # get instances in scene
         self._robot = self.scene.robots["robot"]
-        self._target : RigidObject = None # type: ignore
+        self._target = self.scene.rigid_objects["target1"]
         self._visualizer = self.scene.visualizer
 
         # arm joint index
@@ -176,7 +206,7 @@ class GraspRigidEnv(RLEnv):
         self._timer = Timer()
 
         # variables used to store data
-        # self._data = {}
+        self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
    
     def _pre_physics_step(self, actions: torch.Tensor):
         # 
@@ -195,9 +225,8 @@ class GraspRigidEnv(RLEnv):
         ring_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[3],:]
         pinky_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[4],:]
         grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
-
         # lego state
-        lego_state = self._target.data.root_link_state_w[:,:]
+        target_state = self._target.data.root_link_state_w[:,:]
 
         # refresh visualize and marker
         marker_pos = torch.cat((
@@ -206,7 +235,7 @@ class GraspRigidEnv(RLEnv):
             middle_tip_link_state[0:1,:3],
             ring_tip_link_state[0:1,:3],
             pinky_tip_link_state[0:1,:3],
-            lego_state[0:1,:3],
+            target_state[0:1,:3],
             grasp_fingers_pos[0:1,:3]
             ),0)
         
@@ -216,7 +245,7 @@ class GraspRigidEnv(RLEnv):
             middle_tip_link_state[0:1,3:7],
             ring_tip_link_state[0:1,3:7],
             pinky_tip_link_state[0:1,3:7],
-            lego_state[0:1,3:7],
+            target_state[0:1,3:7],
             torch.zeros((1,4),device=self.device)
             ),0)
 
@@ -228,7 +257,9 @@ class GraspRigidEnv(RLEnv):
 
     def _apply_action(self):
         
-
+        # aa = self._robot.cameras["base_camera"].data.info[0]['instance_segmentation_fast']
+        # self._robot.cameras["base_camera"].data.output["instance_segmentation_fast"]
+        # pass
         # actions 范围 -1 到 1 
         # action index 0-6 : arm velocity (normed), order is same with self._arm_joint_index
         # action index 7-12 : hand real joint position target (normed), order is same with self._hand_real_joint_index
@@ -314,8 +345,8 @@ class GraspRigidEnv(RLEnv):
         hand_base_state = self._robot.data.body_link_state_w[:,self._hand_base_link_index,:].clone()
 
         # lego state
-        lego_state =  self._target.data.root_link_state_w[:,:].clone()
-
+        target_state =  self._target.data.root_link_state_w[:,:].clone()
+        # print(target_state[0,:3])
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         index_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
@@ -323,7 +354,7 @@ class GraspRigidEnv(RLEnv):
         ring_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         pinky_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         hand_base_state[:,:3] -= self.scene.env_origins[:,:]
-        lego_state[:,:3] -= self.scene.env_origins[:,:]
+        target_state[:,:3] -= self.scene.env_origins[:,:]
 
 
         # ********** Get Observation Second **********
@@ -341,15 +372,15 @@ class GraspRigidEnv(RLEnv):
 
         # 26:40 => 手指距离目标lego块的距离, 5 * 3 dim
         # 大拇指
-        self._obs[:,26:29] =  thumb_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,26:29] =  thumb_tip_link_state[:,:3] - target_state[:,:3]
         # 食指
-        self._obs[:,29:32] =  index_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,29:32] =  index_tip_link_state[:,:3] - target_state[:,:3]
         # 中指
-        self._obs[:,32:35] =  middle_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,32:35] =  middle_tip_link_state[:,:3] - target_state[:,:3]
         # 无名指
-        self._obs[:,35:38] =  ring_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,35:38] =  ring_tip_link_state[:,:3] - target_state[:,:3]
         # 小拇指
-        self._obs[:,38:41] =  pinky_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,38:41] =  pinky_tip_link_state[:,:3] - target_state[:,:3]
 
         # 41:53 => action , 13 dim
         self._obs[:,41:54] = self.actions.clone()
@@ -358,7 +389,7 @@ class GraspRigidEnv(RLEnv):
         self._obs[:,54:61] = hand_base_state[:,:7]
 
         # 76:82 =>lego_pose, 7 dim
-        self._obs[:,61:68] = lego_state[:,:7]
+        self._obs[:,61:68] = target_state[:,:7]
 
         # 83:88 => hand base link linear velocity and angular velocity , 6 dim
         self._obs[:,68:74] = hand_base_state[:,7:]
@@ -373,9 +404,9 @@ class GraspRigidEnv(RLEnv):
         self._obs[:,114:124] = pinky_tip_link_state[:,3:]
 
         # 76:82 =>lego_pose, 3 dim
-        self._obs[:,124:127] = lego_state[:,7:10]
+        self._obs[:,124:127] = target_state[:,7:10]
         # 76:82 =>lego_pose, 3 dim
-        self._obs[:,127:130] = lego_state[:,10:]
+        self._obs[:,127:130] = target_state[:,10:]
 
         # critic obs不确定是什么且为和必须，缺少会报错，暂时设置为和obs一样
         observations = {"policy": self._obs, "critic":self._obs}
@@ -426,7 +457,7 @@ class GraspRigidEnv(RLEnv):
             pose_dist max is 6
         """
         grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
-        # pose_dist = tolerance(grasp_fingers_pos, lego_state[:,:3], 0.016, 0.01)
+        # pose_dist = tolerance(grasp_fingers_pos, target_state[:,:3], 0.016, 0.01)
         # pose_reward = pose_dist * 6
 
         grasp_fingers_dis = torch.norm(target_state[:,:3] - grasp_fingers_pos, p=2, dim=-1)
@@ -509,54 +540,54 @@ class GraspRigidEnv(RLEnv):
         index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
 
         # lego state
-        lego_state =  self._target.data.root_link_state_w[:,:].clone()
+        target_state =  self._target.data.root_link_state_w[:,:].clone()
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         index_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
-        lego_state[:,:3] -= self.scene.env_origins[:,:]
+        target_state[:,:3] -= self.scene.env_origins[:,:]
 
         fingertip_pos = [thumb_tip_link_state[:,:3],index_tip_link_state[:,:3]]
-        finger_dist = sum([torch.norm(lego_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
+        finger_dist = sum([torch.norm(target_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
 
         # todo:确认重置规则，GYM源代码中只有一个env，所以不确定是一个完成所有重置，还是谁完成谁重置
         resets = torch.where(finger_dist <= -1, torch.ones(self.num_envs,device=self.device), torch.zeros(self.num_envs,device=self.device))# type: ignore
 
-        # 
-        contact_sensors = {
-            "right_hand":self.scene.sensors["right_hand"],
-        }
+        # # 
+        # contact_sensors = {
+        #     "right_hand":self.scene.sensors["right_hand"],
+        # }
 
-        # 仅收集数据时进行eval
-        if self.cfg.enable_output:
-            # 判断任务成功或失败
-            # 失败判断
-            if eval_fail(
-                self.scene.robots["robot"],
-                self.scene.rigid_objects["lego"],
-                contact_sensors, # type: ignore
-                ): 
-                print("Failed")
-                resets = torch.ones(self.num_envs,device=self.device)
+        # # 仅收集数据时进行eval
+        # if self.cfg.enable_output:
+        #     # 判断任务成功或失败
+        #     # 失败判断
+        #     if eval_fail(
+        #         self.scene.robots["robot"],
+        #         self.scene.rigid_objects["lego"],
+        #         contact_sensors, # type: ignore
+        #         ): 
+        #         print("Failed")
+        #         resets = torch.ones(self.num_envs,device=self.device)
             
-            # 成功判断
-            if eval_success(
-                self.scene.robots["robot"],
-                self.scene.rigid_objects["lego"],
-                contact_sensors, # type: ignore
-                self.cfg.lift_height_target-0.1): 
-                print("Success")
-                if self.cfg.enable_output:
-                    save_data(self._data,self.cfg)
+        #     # 成功判断
+        #     if eval_success(
+        #         self.scene.robots["robot"],
+        #         self.scene.rigid_objects["lego"],
+        #         contact_sensors, # type: ignore
+        #         self.cfg.lift_height_target-0.1): 
+        #         print("Success")
+        #         if self.cfg.enable_output:
+        #             save_data(self._data,self.cfg)
 
-                # self._episode_success += 1
+        #         # self._episode_success += 1
 
-                # record_time = self._timer.run_time() /60.0
-                # record_rate = self._episode_success / record_time
-                #   
-                # print(f"Policy Success Rate: {self._episode_success/self._episode * 100} %")
+        #         # record_time = self._timer.run_time() /60.0
+        #         # record_rate = self._episode_success / record_time
+        #         #   
+        #         # print(f"Policy Success Rate: {self._episode_success/self._episode * 100} %")
 
-                resets = torch.ones(self.num_envs,device=self.device)
+        #         resets = torch.ones(self.num_envs,device=self.device)
 
 
         # reset_time = time.time()
@@ -572,32 +603,80 @@ class GraspRigidEnv(RLEnv):
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         
-        #
-        # self._data = create_empty_data(self,self.cfg)
+        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
+        # clear data
+        if self.cfg.enable_output and self._data != {}:
+            # single env
+            # save_data(self._data,self.cfg)
+
+            # multi env
+            # 判断哪些完成
+            env_save_list = []
+            for i in range(self.scene.num_envs):
+                delta_z = self._target.data.root_com_pos_w[i,2] - self._target_init_pose[i,2]
+                if abs(delta_z - self.cfg.lift_height_target)<0.1:
+                    env_save_list.append(i)
+            save_data_muilt_env(self._data,self.cfg,env_save_list)
+            # clear cuda cache
+            torch.cuda.empty_cache()
+            #
+            self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+
+        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
 
         # why do this?
         if env_ids is None or len(env_ids) == self.num_envs:
             env_ids = self._robot._ALL_INDICES
 
         # random object
-        rigid_name_random = rigid_list[random.randint(0,len(rigid_list)-1)]
+        random_index = random.randint(1,20)
 
+        self._target = self.scene.rigid_objects[f"target{random_index}"]
+
+        # self._target
         # 
         super()._reset_idx(env_ids) # type: ignore
 
-        #
-        # print(self.scene.rigid_objects["bottle"].data.default_root_state)
-        for rigid_name in rigid_list:
-            if rigid_name==rigid_name_random:
-                self._target = self.scene.rigid_objects[rigid_name]
-                # self._lego.reset()
-                print(rigid_name)
-            else:
-                pos = torch.tensor([2.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(self.num_envs,1) + self.scene.env_origins
-                rot = torch.tensor([1.0,0.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(self.num_envs,1)
-                self.scene.rigid_objects[rigid_name].write_root_pose_to_sim(
-                    torch.cat((pos,rot),dim=1)
-                )
+        # 重置所有刚体为默认位置
+        for i in range(20):
+            self.scene.rigid_objects[f"target{i+1}"].write_root_link_state_to_sim(
+                self.scene.rigid_objects[f"target{i+1}"].data.default_root_state
+            )
+
+        # 设置目标位姿
+        pose = torch.tensor([0.5,-0.15,0.85,1.0,0.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(self.num_envs,1)
+        pose[:,:3] += self.scene.env_origins
+        self._target.write_root_link_pose_to_sim(pose)
+
+        # 设置干扰物位姿
+        
+        # 设置 id
+        # clear lego semantic
+        for i in range(self.num_envs):
+            for j in range(20):
+                target_prim_path = "/World/envs/env_"+str(i)+"/Target"+str(j)
+                instance_name = f"rigid_target"
+                target_prim = get_prim_at_path(target_prim_path) # type: ignore
+                if target_prim.IsValid():
+                    sem = Semantics.SemanticsAPI.Get(target_prim, instance_name)
+                    type_attr = sem.GetSemanticTypeAttr()
+                    if type_attr.Get() is not None:
+                        data_attr = sem.GetSemanticDataAttr()
+                        target_prim.RemoveProperty(type_attr.GetName())
+                        target_prim.RemoveProperty(data_attr.GetName())
+                    target_prim.RemoveAPI(Semantics.SemanticsAPI, instance_name)
+
+        # add lego semantic
+        for i in range(self.num_envs):
+            target_prim_path = "/World/envs/env_"+str(i)+"/Target"+str(random_index)
+            instance_name = f"target_lego"
+            target_prim = get_prim_at_path(target_prim_path)
+            sem = Semantics.SemanticsAPI.Apply(target_prim, instance_name)
+            # create semantic type and data attributes
+            sem.CreateSemanticTypeAttr()
+            sem.CreateSemanticDataAttr()
+            sem.GetSemanticTypeAttr().Set("rigid")
+            sem.GetSemanticDataAttr().Set("target")
 
         # run 50 step until all rigid is static
         for i in range(50):
@@ -656,6 +735,8 @@ class GraspRigidEnv(RLEnv):
         
         # update episodes
         self._episodes += 1
+
+        
 
 
 @torch.jit.script

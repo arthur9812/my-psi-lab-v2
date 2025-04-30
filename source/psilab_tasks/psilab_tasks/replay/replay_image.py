@@ -6,11 +6,11 @@ path  = "/home/admin01/Work/02-PsiLab/psi-lab-v2/outputs/rl/"
 
 file_list = os.listdir(path)
 
-for file in ["20250429_155402_data.hdf5"]:
+for file in file_list:
     if file.split(".")[-1]!="hdf5":
         continue
     hdf5_file = h5py.File(f"{path}/{file}", 'r')
-    image = hdf5_file["robots/robot/arm2_camera.rgb"][:] # type: ignore
+    image = hdf5_file["env_0/robots/robot/base_camera.instance_segmentation_fast"][:] # type: ignore
     step_max = len(image)
     for step in range(step_max):
         cv2.imshow('Image', image[step])

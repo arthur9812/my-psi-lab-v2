@@ -248,8 +248,20 @@ def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
     #
     return data
 
-def save_data_muilt_env(data: dict, cfg, nums_env):
+def save_data_muilt_env(data: dict, cfg, nums_env:list):
+    
     #
+    key_pop = []
+    for key in list(data.keys()):
+        if len(key.split("_"))>1:
+            if int(key.split("_")[-1]) not in nums_env:
+                key_pop.append(key)
+    
+    for key in key_pop:
+        data.pop(key)
+
+    if len(list(data.keys())) <= 1:
+        return      
     # 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"/{timestamp}_data.hdf5"

@@ -194,7 +194,7 @@ PSI_DC_01_CFG = RobotBaseCfg(
         #     prim_path="/World/Robot/base_camera_rgb/base_camera_rgb",
         #     height=224,
         #     width=224,
-            data_types=["rgb"],
+            data_types=["rgb","instance_segmentation_fast"],
             spawn=None
         ),
         # "arm1_camera": CameraCfg(
@@ -212,7 +212,7 @@ PSI_DC_01_CFG = RobotBaseCfg(
         #     prim_path="/World/Robot/arm2_camera_rgb/arm2_camera_rgb",
         #     height=224,
         #     width=224,
-            data_types=["rgb"],
+            data_types=["rgb","instance_segmentation_fast"],
             spawn=None
         )
     }
