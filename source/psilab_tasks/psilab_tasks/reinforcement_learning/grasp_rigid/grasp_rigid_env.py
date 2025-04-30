@@ -94,15 +94,13 @@ class GraspRigidEnv(RLEnv):
 
     def __init__(self, cfg: GraspRigidEnvCfg, render_mode: str | None = None, **kwargs):
         
-
-        # 设置刚体默认位置
-        self._rigid_list = ["target1","bottle"]
-        self._rigid_select_list = []
-        self._target_name = "target1"
-        
+        # 设置刚体默认位置        
         self._pos_base = [2.0,0.0,0.5]
         self._pos_base_x = [-2.0,-1.0,0,1.0,2.0]
         self._pos_base_y = [-2.0,-1.0,0,1.0,2.0]
+
+        self._range_x = [0.38,0.62]
+        self._range_y = [-0.05,0.26]
 
         for i in range(4):
             for j in range(5):
@@ -111,9 +109,7 @@ class GraspRigidEnv(RLEnv):
                     self._pos_base[1]+self._pos_base_y[j],
                     self._pos_base[2]
                 )
-                cfg.scene.rigid_objects_cfg[f"target{i*5+j+1}"].spawn.visual_material.diffuse_color = (random.random(),random.random(),random.random()) # type: ignore
-
-
+                # cfg.scene.rigid_objects_cfg[f"target{i*5+j+1}"].spawn.visual_material.diffuse_color = (random.random(),random.random(),random.random()) # type: ignore
 
         super().__init__(cfg, render_mode, **kwargs)
 
@@ -629,12 +625,13 @@ class GraspRigidEnv(RLEnv):
             env_ids = self._robot._ALL_INDICES
 
         # random object
-        random_index = random.randint(1,20)
+        index_list = [ i+1 for i in range(20)]
+        random.shuffle(index_list)
+        random_index = index_list[-1]
+        index_list.pop()
 
         self._target = self.scene.rigid_objects[f"target{random_index}"]
 
-        # self._target
-        # 
         super()._reset_idx(env_ids) # type: ignore
 
         # 重置所有刚体为默认位置
@@ -644,12 +641,22 @@ class GraspRigidEnv(RLEnv):
             )
 
         # 设置目标位姿
-        pose = torch.tensor([0.5,-0.15,0.85,1.0,0.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(self.num_envs,1)
+        pos_x = random.uniform(self._range_x[0], self._range_x[1])
+        pos_y = random.uniform(self._range_y[0], self._range_y[1])
+        pose = torch.tensor([pos_x,pos_y,0.85,1.0,0.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(self.num_envs,1)
         pose[:,:3] += self.scene.env_origins
         self._target.write_root_link_pose_to_sim(pose)
 
         # 设置干扰物位姿
-        
+        for i in range(3):
+            index = index_list[-1]
+            pos_other_x = random.uniform(0.28, 0.8)
+            pos_other_y = random.uniform(-0.3, 0.3)
+            pose = torch.tensor([pos_other_x,pos_other_y,0.85,1.0,0.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(self.num_envs,1)
+            pose[:,:3] += self.scene.env_origins
+            self.scene.rigid_objects[f"target{index}"].write_root_link_pose_to_sim(pose)
+            index_list.pop()
+            
         # 设置 id
         # clear lego semantic
         for i in range(self.num_envs):

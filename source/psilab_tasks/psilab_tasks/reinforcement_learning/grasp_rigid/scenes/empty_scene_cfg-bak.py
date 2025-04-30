@@ -69,20 +69,13 @@ EMPTY_SCENE_CFG = SceneCfg(
                         # "arm1_joint_link5": 0.30,
                         # "arm1_joint_link6": -1.03,
                         # "arm1_joint_link7": 1.35,
-                        # "arm2_joint_link1": 0.41,
-                        # "arm2_joint_link2": -1.57,
-                        # "arm2_joint_link3": 0.50,
-                        # "arm2_joint_link4": -1.80,
-                        # "arm2_joint_link5": -0.95,
-                        # "arm2_joint_link6": 0.92,
-                        # "arm2_joint_link7": -0.35,
-                        "arm2_joint_link1": 0.36939895,
-                        "arm2_joint_link2": -1.42726047,
-                        "arm2_joint_link3": 0.32529447,
-                        "arm2_joint_link4": -0.78829542,
-                        "arm2_joint_link5": -1.78686804,
-                        "arm2_joint_link6": 0.85681702,
-                        "arm2_joint_link7": 2.33696087,
+                        "arm2_joint_link1": 0.41,
+                        "arm2_joint_link2": -1.57,
+                        "arm2_joint_link3": 0.50,
+                        "arm2_joint_link4": -1.80,
+                        "arm2_joint_link5": -0.95,
+                        "arm2_joint_link6": 0.92,
+                        "arm2_joint_link7": -0.35,
                         # "hand1_joint_link_1_1":0.0,
                         # "hand1_joint_link_1_2":0.63,
                         # "hand1_joint_link_1_3":0.03,
@@ -169,11 +162,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target1" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target1",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/A4V1/usd/A4V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_1.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -190,11 +183,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target2" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target2",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/A5V1/usd/A5V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_2.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -211,11 +204,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target3" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target3",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/A6V1/usd/A6V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_3.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -232,11 +225,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target4" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target4",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/A9V1/usd/A9V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_4.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -253,11 +246,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target5" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target5",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/A10V1/usd/A10const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_5.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -273,11 +266,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target6" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target6",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/A20V2/usd/A20V2const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_6.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -293,11 +286,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target7" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target7",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/B2V2/usd/B2V2const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_7.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -313,11 +306,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target8" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target8",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/B3V1/usd/B3V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_8.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -333,11 +326,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target9" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target9",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/B5V2/usd/B5V2const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_9.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -353,11 +346,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target10" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target10",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/B31V2/usd/B31V2const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_10.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -373,11 +366,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target11" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target11",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/B34V1/usd/B34V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_11.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -393,11 +386,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target12" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target12",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/C14V1/usd/C14V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_12.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -413,11 +406,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target13" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target13",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/C15V1/usd/C15V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_13.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -433,11 +426,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target14" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target14",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/C16V1/usd/C16V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_14.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -453,11 +446,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target15" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target15",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/C20V1/usd/C20V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_15.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -473,11 +466,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target16" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target16",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/F10V1/usd/F10V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_16.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -493,11 +486,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target17" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target17",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/F11V1/usd/F11V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_17.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -513,11 +506,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target18" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target18",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/F14V1/usd/F14V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_18.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -533,11 +526,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target19" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target19",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/F34V1/usd/F34V1const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_19.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -553,11 +546,11 @@ EMPTY_SCENE_CFG = SceneCfg(
             "target20" : RigidObjectCfg(
                 prim_path="/World/envs/env_[0-9]+/Target20",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/others/targets/G10V2/usd/G10V2const.usd",
-                    scale=(0.0006,0.0006,0.0006),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
+                    usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_20.usd",
+                    scale=(1.0,1.0,1.0),
+                    visual_material=sim_utils.PreviewSurfaceCfg(
+                        diffuse_color=(0.80, 0.64, 0.20)
+                    ),
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -570,7 +563,106 @@ EMPTY_SCENE_CFG = SceneCfg(
                     rot= (1.0,0.0,0.0,0.0)
                 )
             ),
-
+            # "target21" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Lego21",
+            #     spawn=sim_utils.UsdFileCfg(
+            #         usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_.usd",
+            #         scale=(1.0,1.0,1.0),
+            #         visual_material=sim_utils.PreviewSurfaceCfg(
+            #             diffuse_color=(0.80, 0.64, 0.20)
+            #         ),
+            #         mass_props=MassPropertiesCfg(
+            #             mass = 0.01
+            #         ),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #                 solver_position_iteration_count=255
+            #             )
+            #     ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.9,-0.05,0.85),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
+            # "target22" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Lego22",
+            #     spawn=sim_utils.UsdFileCfg(
+            #         usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_.usd",
+            #         scale=(1.0,1.0,1.0),
+            #         visual_material=sim_utils.PreviewSurfaceCfg(
+            #             diffuse_color=(0.80, 0.64, 0.20)
+            #         ),
+            #         mass_props=MassPropertiesCfg(
+            #             mass = 0.01
+            #         ),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #                 solver_position_iteration_count=255
+            #             )
+            #     ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.9,-0.05,0.85),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
+            # "target23" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Lego23",
+            #     spawn=sim_utils.UsdFileCfg(
+            #         usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_.usd",
+            #         scale=(1.0,1.0,1.0),
+            #         visual_material=sim_utils.PreviewSurfaceCfg(
+            #             diffuse_color=(0.80, 0.64, 0.20)
+            #         ),
+            #         mass_props=MassPropertiesCfg(
+            #             mass = 0.01
+            #         ),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #                 solver_position_iteration_count=255
+            #             )
+            #     ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.9,-0.05,0.85),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
+            # "target24" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Lego24",
+            #     spawn=sim_utils.UsdFileCfg(
+            #         usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_.usd",
+            #         scale=(1.0,1.0,1.0),
+            #         visual_material=sim_utils.PreviewSurfaceCfg(
+            #             diffuse_color=(0.80, 0.64, 0.20)
+            #         ),
+            #         mass_props=MassPropertiesCfg(
+            #             mass = 0.01
+            #         ),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #                 solver_position_iteration_count=255
+            #             )
+            #     ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.9,-0.05,0.85),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
+            # "target25" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Lego25",
+            #     spawn=sim_utils.UsdFileCfg(
+            #         usd_path=PSILAB_USD_ASSET_DIR + "/others/lego/1x2_.usd",
+            #         scale=(1.0,1.0,1.0),
+            #         visual_material=sim_utils.PreviewSurfaceCfg(
+            #             diffuse_color=(0.80, 0.64, 0.20)
+            #         ),
+            #         mass_props=MassPropertiesCfg(
+            #             mass = 0.01
+            #         ),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #                 solver_position_iteration_count=255
+            #             )
+            #     ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.9,-0.05,0.85),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
          
         },
         

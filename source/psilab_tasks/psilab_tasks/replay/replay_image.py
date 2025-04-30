@@ -9,6 +9,7 @@ file_list = os.listdir(path)
 for file in file_list:
     if file.split(".")[-1]!="hdf5":
         continue
+    print(file)
     hdf5_file = h5py.File(f"{path}/{file}", 'r')
     image = hdf5_file["env_0/robots/robot/base_camera.instance_segmentation_fast"][:] # type: ignore
     step_max = len(image)
