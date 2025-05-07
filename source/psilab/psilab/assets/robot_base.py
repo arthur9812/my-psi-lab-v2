@@ -14,7 +14,7 @@ import torch
 
 """ IsaacLab Modules  """ 
 from isaaclab.assets.articulation import Articulation
-from isaaclab.sensors.camera import CameraCfg,Camera
+from isaaclab.sensors.camera import CameraCfg,Camera,TiledCamera
 from isaaclab.utils.math import ( 
     matrix_from_quat,
     quat_inv,
@@ -34,6 +34,7 @@ class RobotBase(Articulation):
     cfg: RobotBaseCfg
 
     cameras : dict[str,Camera] = None # type: ignore
+    tiled_cameras : dict[str,TiledCamera] = None # type: ignore
 
     ik_controllers : dict[str,DiffIKController] = None # type: ignore
 
@@ -47,6 +48,7 @@ class RobotBase(Articulation):
         super().__init__(cfg)
 
         self.cameras = {}
+        self.tiled_cameras = {}
         self.ik_controllers = {}
         
     def _initialize_impl(self):

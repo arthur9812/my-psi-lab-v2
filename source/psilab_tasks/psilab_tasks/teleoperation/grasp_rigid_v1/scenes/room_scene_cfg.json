@@ -33,20 +33,19 @@
     },
     "local_lights_cfg": {},
     "robots_cfg": {
-        "robot1": {
+        "robot": {
             "class_type": "psilab.assets.robot_base:RobotBase",
-            "prim_path": "/World/envs/env_[0-9]+/Robot1",
+            "prim_path": "/World/Robot",
             "spawn": {
                 "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
+                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned.usd",
                 "activate_contact_sensors": true,
                 "articulation_props": {
-                    "enabled_self_collisions": false,
-                    "solver_position_iteration_count": 255,
-                    "solver_velocity_iteration_count": 1,
-                    "sleep_threshold": 0.005,
-                    "stabilization_threshold": 0.001
+                    "enabled_self_collisions": true
                 },
-                "usd_path": "/home/admin01/Work/00-PsiLab/psi-lab-v2/assets/USD/robots/PsiRobot_DC_01/PsiRobot_DC_01_Tuned.usd"
+                "rigid_props": {
+                    "solver_position_iteration_count": 255
+                }
             },
             "init_state": {
                 "pos": [
@@ -184,9 +183,6 @@
                     "command_type": "pose",
                     "use_relative_mode": false,
                     "ik_method": "dls",
-                    "ik_params": {
-                        "lambda_val": 0.01
-                    },
                     "joint_name": [
                         "arm1_joint_link1",
                         "arm1_joint_link2",
@@ -203,9 +199,6 @@
                     "command_type": "pose",
                     "use_relative_mode": false,
                     "ik_method": "dls",
-                    "ik_params": {
-                        "lambda_val": 0.01
-                    },
                     "joint_name": [
                         "arm2_joint_link1",
                         "arm2_joint_link2",
@@ -218,13 +211,11 @@
                     "eef_link_name": "arm2_link7"
                 }
             },
-            "cameras": {
+            "cameras": {},
+            "tiled_cameras": {
                 "base_camera": {
-                    "class_type": "isaaclab.sensors.camera.camera:Camera",
-                    "prim_path": "/World/envs/env_.*/Robot1/base_camera_rgb/base_camera_rgb",
-                    "offset": {
-                        "convention": "world"
-                    },
+                    "class_type": "isaaclab.sensors.camera.tiled_camera:TiledCamera",
+                    "prim_path": "/World/Robot/base_camera_rgb/base_camera_rgb",
                     "spawn": null,
                     "data_types": [
                         "rgb"
@@ -233,11 +224,8 @@
                     "height": 224
                 },
                 "arm1_camera_": {
-                    "class_type": "isaaclab.sensors.camera.camera:Camera",
-                    "prim_path": "/World/envs/env_.*/Robot1/arm1_camera_rgb/arm1_camera_rgb",
-                    "offset": {
-                        "convention": "world"
-                    },
+                    "class_type": "isaaclab.sensors.camera.tiled_camera:TiledCamera",
+                    "prim_path": "/World/Robot/arm1_camera_rgb/arm1_camera_rgb",
                     "spawn": null,
                     "data_types": [
                         "rgb"
@@ -246,11 +234,8 @@
                     "height": 224
                 },
                 "arm2_camera": {
-                    "class_type": "isaaclab.sensors.camera.camera:Camera",
-                    "prim_path": "/World/envs/env_.*/Robot1/arm2_camera_rgb/arm2_camera_rgb",
-                    "offset": {
-                        "convention": "world"
-                    },
+                    "class_type": "isaaclab.sensors.camera.tiled_camera:TiledCamera",
+                    "prim_path": "/World/Robot/arm2_camera_rgb/arm2_camera_rgb",
                     "spawn": null,
                     "data_types": [
                         "rgb"
@@ -264,10 +249,10 @@
     "static_objects_cfg": {
         "room": {
             "class_type": null,
-            "prim_path": "/World/envs/env_[0-9]+/Room",
+            "prim_path": "/World/Room",
             "spawn": {
                 "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
-                "usd_path": "/home/admin01/Work/00-PsiLab/psi-lab-v2/assets/USD/envs/psi_garage_2_obj/GarageScene.usd"
+                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/envs/psi_garage_2_obj/GarageScene.usd"
             },
             "init_state": {
                 "pos": [
@@ -287,14 +272,14 @@
     "rigid_objects_cfg": {
         "table": {
             "class_type": "isaaclab.assets.rigid_object.rigid_object:RigidObject",
-            "prim_path": "/World/envs/env_[0-9]+/Table",
+            "prim_path": "/World/Table",
             "spawn": {
                 "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
-                "usd_path": "/home/admin01/Work/00-PsiLab/psi-lab-v2/assets/USD/others/table_1157.usd",
+                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/rigid_objects/table/table_1157.usd",
                 "rigid_props": {
-                    "kinematic_enabled": true
+                    "kinematic_enabled": true,
+                    "solver_position_iteration_count": 255
                 },
-                "activate_contact_sensors": false,
                 "scale": [
                     1.0,
                     1.0,
@@ -327,11 +312,10 @@
         },
         "bottle": {
             "class_type": "isaaclab.assets.rigid_object.rigid_object:RigidObject",
-            "prim_path": "/World/envs/env_[0-9]+/Bottle",
+            "prim_path": "/World/Bottle",
             "spawn": {
                 "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
-                "usd_path": "/home/admin01/Work/00-PsiLab/psi-lab-v2/assets/USD/others/drink-B36-V1/B36.usd",
-                "activate_contact_sensors": false,
+                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/rigid_objects/drink-B36-V1/B36.usd",
                 "scale": [
                     0.0006,
                     0.0006,
@@ -345,7 +329,7 @@
             "init_state": {
                 "pos": [
                     0.0,
-                    -0.05,
+                    0.0,
                     0.85
                 ],
                 "rot": [
@@ -371,7 +355,7 @@
     "cameras_cfg": {
         "eye_left": {
             "class_type": "isaaclab.sensors.camera.camera:Camera",
-            "prim_path": "/World/envs/env_[0-9]+/CameraLeft",
+            "prim_path": "/World/CameraLeft",
             "offset": {
                 "pos": [
                     [
@@ -401,7 +385,7 @@
         },
         "eye_right": {
             "class_type": "isaaclab.sensors.camera.camera:Camera",
-            "prim_path": "/World/envs/env_[0-9]+/CameraRight",
+            "prim_path": "/World/CameraRight",
             "offset": {
                 "pos": [
                     [
@@ -430,10 +414,11 @@
             "height": 720
         }
     },
+    "tiled_cameras_cfg": {},
     "contact_sensors_cfg": {
         "left_hand": {
             "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
-            "prim_path": "/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Left/hand1_link_.*",
+            "prim_path": "/World/Robot/InspireHand_OY_Left/hand1_link_.*",
             "update_period": 0.0,
             "history_length": 0,
             "debug_vis": false,
@@ -441,7 +426,7 @@
         },
         "right_hand": {
             "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
-            "prim_path": "/World/envs/env_[0-9]+/Robot1/InspireHand_OY_Right/hand2_link_.*",
+            "prim_path": "/World/Robot/InspireHand_OY_Right/hand2_link_.*",
             "update_period": 0.0,
             "history_length": 0,
             "debug_vis": false,
@@ -454,7 +439,7 @@
         "local_lights_cfg": null,
         "rigid_objects_cfg": {
             "bottle": {
-                "fake_random": false,
+                "random_type": "range",
                 "random_position": false,
                 "random_orientation": false,
                 "random_material": false,
@@ -463,8 +448,89 @@
                     0.1,
                     0.1
                 ],
-                "position_list": null,
-                "orientation_list": null
+                "position_list": [
+                    [
+                        0.1,
+                        0.0,
+                        0.0
+                    ],
+                    [
+                        0.0,
+                        0.1,
+                        0.0
+                    ],
+                    [
+                        -0.1,
+                        0.0,
+                        0.0
+                    ],
+                    [
+                        0.0,
+                        -0.1,
+                        0.0
+                    ]
+                ],
+                "orientation_list": [
+                    [
+                        0.707,
+                        0.707,
+                        0.0,
+                        0.0
+                    ],
+                    [
+                        0.707,
+                        0.0,
+                        0.707,
+                        0.0
+                    ],
+                    [
+                        0.707,
+                        0.0,
+                        0.0,
+                        0.707
+                    ]
+                ],
+                "material_cfg": {
+                    "enable_random": false,
+                    "shader_path": "/World/Bottle/Looks/material_0/material_0",
+                    "random_type": "range",
+                    "material_type": "colored_texture",
+                    "color_range": [
+                        [
+                            0,
+                            0,
+                            0
+                        ],
+                        [
+                            255,
+                            255,
+                            255
+                        ]
+                    ],
+                    "color_list": [
+                        [
+                            0,
+                            32,
+                            54
+                        ],
+                        [
+                            231,
+                            65,
+                            0
+                        ],
+                        [
+                            21,
+                            123,
+                            10
+                        ]
+                    ],
+                    "texture_list": [
+                        "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/rigid_objects/drink-B36-V1/textures/B36.jpg",
+                        "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/texture/20250311-092148.jpg",
+                        "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/texture/20250311-092142.jpg",
+                        "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/texture/20250311-092135.jpg"
+                    ]
+                }
             }
         }
     }

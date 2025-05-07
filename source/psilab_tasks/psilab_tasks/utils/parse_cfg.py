@@ -57,12 +57,19 @@ def parse_rl_env_cfg(
         enable_wandb: bool = False,
         enable_output: bool = False,
         ouput_folder: str | None = None,
-        sample_step: int = 1)->RLEnvCfg:
+        sample_step: int = 1,
+        async_reset: bool = False,
+        enable_random:bool = False,
+        enable_marker:bool = False,
+        )->RLEnvCfg:
     # 
     env_cfg.seed = seed # type: ignore
     env_cfg.enable_wandb = enable_wandb # type: ignore
     env_cfg.enable_output = enable_output # type: ignore
     env_cfg.sample_step = sample_step # type: ignore
+    env_cfg.async_reset = async_reset # type: ignore
+    env_cfg.enable_random = enable_random # type: ignore
+    env_cfg.enable_marker = enable_marker # type: ignore
     if ouput_folder is not None:
         env_cfg.ouput_folder = ouput_folder  # type: ignore
 
@@ -77,6 +84,9 @@ def parse_il_env_cfg(
         enable_output: bool = False,
         ouput_folder: str | None = None,
         sample_step: int = 1,
+        async_reset: bool = False,
+        enable_random:bool = False,
+        enable_marker:bool = False,        
         policy: str | None = None,
         max_step: int = 1, 
         max_episode: int = 1, 
@@ -86,6 +96,9 @@ def parse_il_env_cfg(
     env_cfg.enable_wandb = enable_wandb # type: ignore
     env_cfg.enable_output = enable_output # type: ignore
     env_cfg.sample_step = sample_step # type: ignore
+    env_cfg.async_reset = async_reset # type: ignore
+    env_cfg.enable_random = enable_random # type: ignore
+    env_cfg.enable_marker = enable_marker # type: ignore
     env_cfg.policy = policy # type: ignore
     env_cfg.max_step = max_step # type: ignore
     env_cfg.max_episode = max_episode # type: ignore

@@ -21,6 +21,9 @@ parser.add_argument("--json_file", type=str, default=None, help="Scene json file
 parser.add_argument("--enable_output", action="store_true", default=False, help="Whether output data to hdf5 files or not.")
 parser.add_argument("--output_folder", type=str, default=None, help="Hdf5 files folder.")
 parser.add_argument("--sample_step", type=int, default=1, help="Simulation steps per sample step") 
+parser.add_argument("--async_reset", action="store_true", default=False, help="Whether reset envs asynchronous or asynchronous.")
+parser.add_argument("--enable_random", action="store_true", default=False, help="Whether enbale random when envs reset.")
+parser.add_argument("--enable_marker", action="store_true", default=False, help="Whether show marker or not.")
 parser.add_argument("--policy", type=str, default=None, help="The policy to load and predict") 
 parser.add_argument("--max_step", type=int, default=None, help="The max step to reset") 
 parser.add_argument("--max_episode", type=int, default=None, help="The max episode to to run") 
@@ -63,7 +66,7 @@ from psilab.envs.tp_env import TPEnv
 """ Psi RL Modules  """ 
 # import psilab.tasks # noqa: F401
 import psilab_tasks
-
+from psilab.utils.timer_utils import Timer
 from psilab.envs.tp_env import TPEnv
 from psilab_tasks.utils import parse_scene_cfg,parse_il_env_cfg
 # from psilab.utils.global_variants import GlobalVariant
@@ -88,8 +91,13 @@ env_cfg = parse_il_env_cfg(
     args_cli.enable_output,
     args_cli.output_folder,
     args_cli.sample_step,
+    args_cli.async_reset,
+    args_cli.enable_random,
+    args_cli.enable_marker,
     args_cli.policy,
-    args_cli.max_step
+    args_cli.max_step,
+    args_cli.max_episode,
+
 )
 
 # parse argumanets for psi lab scene config
@@ -103,19 +111,43 @@ env_cfg.scene = parse_scene_cfg(
 # clear camera configs in scene while "enable_cameras" flag is True
 if enable_cameras is False:
     env_cfg.scene.cameras_cfg ={}
+    env_cfg.scene.tiled_cameras_cfg = {}
     for robot_cfg in env_cfg.scene.robots_cfg.values():
         robot_cfg.cameras = {} # type: ignore
+        robot_cfg.tiled_cameras = {} # type: ignore
+
+# clear random configs while "enable_random" flag is false
+if not env_cfg.enable_random:
+    env_cfg.scene.random = None
+
+# clear marker configs while "enable_marker" flag is false
+if not env_cfg.enable_marker:
+    env_cfg.scene.marker_cfg = None
+
+# get timer
+timer = Timer() 
+
 
 # create env      
 env = gym.make(args_cli.task, cfg=env_cfg)
 # reset env
 env.reset()
-#
-
-
-while(True):
+# loop
+while(True): # type: ignore
     #
     env.step(torch.zeros(1))
-    # for i in range(env_cfg.decimation):
-        
-    # env.() 
+    # break loop if reach max_episode
+    if env.env.episode>=env_cfg.max_episode: # type: ignore
+        break
+    
+# print log
+record_time =  timer.run_time() /60.0
+#   
+print(f"运行时长: {record_time} 分钟")
+print(f"成功/总运行次数: {env.env.episode_success}/{env_cfg.max_episode} 次") # type: ignore
+if env_cfg.enable_output:
+    record_rate = env.env.episode_success / record_time # type: ignore
+    print(f"采集效率: {record_rate} 条/分钟")
+
+# close app
+app_launcher.app.close()

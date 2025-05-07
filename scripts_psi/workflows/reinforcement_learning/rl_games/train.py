@@ -30,11 +30,14 @@ parser.add_argument("--enable_json", action="store_true", default=False, help="W
 parser.add_argument("--json_file", type=str, default=None, help="Scene json file.")
 parser.add_argument("--enable_output", action="store_true", default=False, help="Whether output data to hdf5 files or not.")
 parser.add_argument("--output_folder", type=str, default=None, help="Hdf5 files folder.")
-parser.add_argument("--sample_step", type=int, default=1, help="Simulation steps per sample step") 
+parser.add_argument("--sample_step", type=int, default=1, help="Simulation steps per sample step")
+parser.add_argument("--async_reset", action="store_true", default=False, help="Whether reset envs asynchronous or asynchronous.")
+parser.add_argument("--enable_random", action="store_true", default=False, help="Whether enbale random when envs reset.")
+parser.add_argument("--enable_marker", action="store_true", default=False, help="Whether show marker or not.")
+
 
 """ Must First Start APP, or import omni.isaac.lab.sim as sim_utils will be error."""
 from isaaclab.app import AppLauncher
-
 
 # append AppLauncher cli args 
 AppLauncher.add_app_launcher_args(parser)
@@ -84,7 +87,10 @@ env_cfg = parse_rl_env_cfg(
     args_cli.enable_wandb,
     args_cli.enable_output,
     args_cli.output_folder,
-    args_cli.sample_step
+    args_cli.sample_step,
+    args_cli.async_reset,
+    args_cli.enable_random,
+    args_cli.enable_marker
 )
 
 # parse argumanets for psi lab scene config
@@ -98,8 +104,18 @@ env_cfg.scene = parse_scene_cfg(
 # clear camera configs in scene while "enable_cameras" flag is True
 if enable_cameras is False:
     env_cfg.scene.cameras_cfg ={}
+    env_cfg.scene.tiled_cameras_cfg = {}
     for robot_cfg in env_cfg.scene.robots_cfg.values():
         robot_cfg.cameras = {} # type: ignore
+        robot_cfg.tiled_cameras = {} # type: ignore
+
+# clear random configs while "enable_random" flag is false
+if not env_cfg.enable_random:
+    env_cfg.scene.random = None
+
+# clear marker configs while "enable_marker" flag is false
+if not env_cfg.enable_marker:
+    env_cfg.scene.marker_cfg = None
 
 # create env
 env = gym.make(args_cli.task, cfg=env_cfg)

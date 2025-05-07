@@ -10,7 +10,7 @@ from dataclasses import MISSING
 from isaaclab.utils.configclass import configclass
 from isaaclab.scene.interactive_scene_cfg import InteractiveSceneCfg
 from isaaclab.sensors import ContactSensorCfg
-from isaaclab.sensors.camera import CameraCfg
+from isaaclab.sensors.camera import CameraCfg,TiledCameraCfg
 from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.assets import (
     AssetBaseCfg,
@@ -47,6 +47,9 @@ class SceneCfg(InteractiveSceneCfg):
 
     cameras_cfg: dict[str, CameraCfg] = MISSING  # type: ignore
     """The cameras configuration dict."""
+
+    tiled_cameras_cfg: dict[str, TiledCameraCfg] = MISSING  # type: ignore
+    """The tiled cameras configuration dict."""
 
     contact_sensors_cfg: dict[str, ContactSensorCfg] = MISSING  # type: ignore
     """The contact sensors configuration dict."""

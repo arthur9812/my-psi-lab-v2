@@ -332,6 +332,11 @@ def scene_cfg(data:dict)->SceneCfg:
             for camera_name,camera in value.items():
                 cameras_cfg[camera_name] = camera_cfg(camera)
             setattr(cfg,key,cameras_cfg)
+        elif key == "tiled_cameras_cfg":
+            tiled_cameras_cfg = {}
+            for camera_name,camera in value.items():
+                tiled_cameras_cfg[camera_name] = tiled_camera_cfg(camera)
+            setattr(cfg,key,tiled_cameras_cfg)
         elif key == "contact_sensors_cfg":
             contact_sensors_cfg = {}
             for sensor_name,sensor_cfg in value.items():
@@ -368,13 +373,25 @@ def robot_base_cfg(data:dict)->RobotBaseCfg:
         elif key == "cameras":
             cameras = {}
             for name,camera in value.items():
-                class_type = camera["class_type"].split(":")[1]
-                if class_type=="TiledCamera":
-                    cameras[name] = tiled_camera_cfg(camera)
-                else:
-                    cameras[name] = camera_cfg(camera)
+                cameras[name] = camera_cfg(camera)
+                # class_type = camera["class_type"].split(":")[1]
+                # if class_type=="TiledCamera":
+                #     cameras[name] = tiled_camera_cfg(camera)
+                # else:
+                    # cameras[name] = camera_cfg(camera)
 
             setattr(cfg,key,cameras)
+        elif key == "tiled_cameras":
+            tiled_cameras = {}
+            for name,camera in value.items():
+                tiled_cameras[name] = tiled_camera_cfg(camera)
+                # class_type = camera["class_type"].split(":")[1]
+                # if class_type=="TiledCamera":
+                    # tiled_cameras[name] = tiled_camera_cfg(camera)
+                # else:
+                #     tiled_cameras[name] = camera_cfg(camera)
+
+            setattr(cfg,key,tiled_cameras)
     
     return cfg
 
@@ -444,6 +461,8 @@ def rigid_random_cfg(data:dict)->RigidRandomCfg:
 
     
     return cfg
+
+#TODO: Add material random cfg
 
 def random_cfg(data:dict)->RandomCfg:
     

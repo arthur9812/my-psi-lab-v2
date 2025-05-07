@@ -147,7 +147,7 @@ class GraspRigidEnv(TPEnv):
         self._hand_virtual_joint_index_left = self._robot.actuators["hand1"].joint_indices[6:] # type: ignore
         self._hand_virtual_joint_index_right = self._robot.actuators["hand2"].joint_indices[6:] # type: ignore
         #
-        pass
+        # pass
         self._timer = Timer()
        
    
@@ -172,6 +172,7 @@ class GraspRigidEnv(TPEnv):
     def sim_step(self):
         
         # print(self.scene.robots["robot1"].actuators["hand1"].joint_indices) # type: ignore)
+        
         # self.vuer.veur_step()
         contact_sensors = {
             "left_hand":self.scene.sensors["left_hand"],

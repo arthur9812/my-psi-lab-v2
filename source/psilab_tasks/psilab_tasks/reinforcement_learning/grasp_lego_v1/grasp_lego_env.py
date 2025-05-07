@@ -27,15 +27,15 @@ from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.utils.wandb_utils import WandbLog
 from psilab.utils.timer_utils import Timer
 
-from psilab.utils.data_collect_utils import create_empty_data,parse_step_data,save_data
+from psilab.utils.data_collect_utils import create_data_buffer,parse_data,save_data
 
 
 @configclass
 class GraspLegoEnvCfg(RLEnvCfg):
-    """Configuration for Rl environment."""
+    """Configuration for RL environment."""
 
     # params
-    episode_length_s = 1 * 210 / 60.0
+    episode_length_s = 1.0 * 210 / 60.0
     decimation = 2
     action_scale = 0.5
     action_space = 13
@@ -43,17 +43,13 @@ class GraspLegoEnvCfg(RLEnvCfg):
     state_space = 130
 
     # other params from gym
-    arm_hand_dof_speed_scale = 3.0
+    arm_hand_dof_speed_scale = 20.0
     vel_obs_scale = 0.2
     act_moving_average = 0.8
-    env_id_print_data = 0 # 打印信息的环境索引
-    lift_height_target = 0.3 # lego期望升起高度
-    
-    #
-    ouput_folder = OUTPUT_DIR + "/rl/"
-    sample_step = 1
+    env_id_print_data = 0 # index of env to print status
+    lift_height_target = 0.3 # lego lift height target
 
-    # simulation  config
+    # simulation config
     sim: SimulationCfg = SimulationCfg(
         dt = 1 / 120, 
         render_interval=decimation,
@@ -63,14 +59,20 @@ class GraspLegoEnvCfg(RLEnvCfg):
             max_velocity_iteration_count = 0,
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
-            gpu_collision_stack_size=2100000000,
+            gpu_max_rigid_patch_count = 4096 * 4096,
+            # gpu_collision_stack_size=2100000000,
             gpu_found_lost_pairs_capacity = 137401003
         ),
         render=RenderCfg(),
 
     )
 
+    # defualt ouput folder
+    output_folder = OUTPUT_DIR + "/rl"
+
+# TODO: output custom data to hdf5 files
 class GraspLegoEnv(RLEnv):
+    """GraspLego RL environment."""
 
     cfg: GraspLegoEnvCfg
 
@@ -80,33 +82,30 @@ class GraspLegoEnv(RLEnv):
 
         # ############### initiallize variables ###################
         self._arm_joint_num = 7
-        self._hand_real_joint_num = 6
         self._episodes = 0
 
-        self.robot = self.scene.articulations["robot1"]
-
-        # self.robot = self.scene.robots["robot1"]
-        self.visualizer = self.scene.visualizer
-        self.lego = self.scene.rigid_objects["lego"]
-
-        # variables used to store data
-        # self._data = {}
-        
+        # get instances in scene
+        self._robot = self.scene.robots["robot"]
+        self._lego = self.scene.rigid_objects["lego"]
+        self._visualizer = self.scene.visualizer
 
         # arm joint index
-        self._arm_joint_index = self.robot.actuators["arm"].joint_indices
-        
+        self._arm_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["arm"].joint_names]
+
+        # hand joint index
+        self._hand_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["hand"].joint_names]
+
         # hand base link index
-        self._hand_base_link_index = self.robot.find_bodies(["hand1_link_base"])[0][0]
+        self._hand_base_link_index = self._robot.find_bodies(["hand1_link_base"])[0][0]
 
         # hand real joint index
-        self._hand_real_joint_index = self.robot.actuators["hand"].joint_indices[:6] # type: ignore
+        self._hand_real_joint_index = self._hand_joint_index[:6] # type: ignore
         # hand virtual joint index
-        self._hand_virtual_joint_index = self.robot.actuators["hand"].joint_indices[6:] # type: ignore
+        self._hand_virtual_joint_index = self._hand_joint_index[6:] # type: ignore
 
         # finger tip link index
         self._finger_tip_index = [
-            self.robot.find_bodies(link_name)[0][0] 
+            self._robot.find_bodies(link_name)[0][0] 
             for link_name in [
                 "hand1_link_1_4",
                 "hand1_link_2_3",
@@ -116,8 +115,8 @@ class GraspLegoEnv(RLEnv):
             ]]
 
         # joint limit
-        self._joint_limit_lower = self.robot.data.joint_limits[:,:,0].clone()
-        self._joint_limit_upper = self.robot.data.joint_limits[:,:,1].clone()
+        self._joint_limit_lower = self._robot.data.joint_limits[:,:,0].clone()
+        self._joint_limit_upper = self._robot.data.joint_limits[:,:,1].clone()
 
         # lego init pose, position and orientation(w,x,y,z)
         self._lego_init_pose = torch.zeros((self.num_envs,7),device=self.device)
@@ -125,39 +124,33 @@ class GraspLegoEnv(RLEnv):
         # unit tensors which used to compute
         self._z_unit_tensor = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
 
-        # 期望举起高度
+        # lift height target  
         self._lift_height_target = self.cfg.lift_height_target * torch.ones(self.num_envs,device=self.device)
 
         # obervation state
         self._obs = torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device, dtype=torch.float32) # type: ignore
 
-        
         # joint target position each step, include real and fake joint
-        self._joint_pos_target = self.robot.data.default_joint_pos.clone()
+        self._joint_pos_target = self._robot.data.default_joint_pos.clone()
 
         # joint target position for last step, include real and fake joint
-        self._joint_pos_target_lasttime = self.robot.data.default_joint_pos.clone()
+        self._joint_pos_target_lasttime = self._robot.data.default_joint_pos.clone()
 
-        # from gym, not sure what this is
-        self.E_prev = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
+        # reward lasttime
+        self._reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
 
-        # self._resets = torch.tensor([False for i in range(self.num_envs)], device=self.device)
-        self._resets = torch.tensor([0 for i in range(self.num_envs)], device=self.device)
         # Print information of this environment
         print("Num envs: ", self.num_envs)
-        print("Num bodies: ", self.robot.num_bodies)
-        # print("Num dofs: ", self._hand_real_joint_num + self._arm_joint_num)
-        # print("Num arm hand dofs: ", self._hand_real_joint_num)
-        # print("Contact Tensor Dimension", self.contact_tensor.shape)
-        # print("hand_base_rigid_body_index: ", self._hand_base_link_index)
+        print("Num bodies: ", self._robot.num_bodies)
+        print("Num arm dofs: ", self._arm_joint_num)
+        print("Num hand dofs: ", 6)
+        print("hand_base_rigid_body_index: ", self._hand_base_link_index)
         
         self.extras = {
             'dist_reward': torch.zeros((self.num_envs),device=self.device), 
             'lego_up_reward': torch.zeros((self.num_envs),device=self.device), 
             "pose_reward": torch.zeros((self.num_envs),device=self.device),  
             "angle_reward": torch.zeros((self.num_envs),device=self.device),  
-            'z_lift': torch.zeros((self.num_envs),device=self.device),  
-            'xy_move': torch.zeros((self.num_envs),device=self.device), 
             'action_penalty': torch.zeros((self.num_envs),device=self.device), 
             'mean_reward': torch.zeros((1),device=self.device), 
         }
@@ -171,15 +164,69 @@ class GraspLegoEnv(RLEnv):
 
         # initialize Timer
         self._timer = Timer()
+   
+    def _pre_physics_step(self, actions: torch.Tensor):
+        # 
+        self.actions = actions.clone()
+        # just for test
+        # self.actions = torch.tensor([0,0.45,0,1.78,0,-0.5,-2.54,0,0,0,0,0,0],device="cuda:0").unsqueeze(0).repeat(self.num_envs,1)
+      
+    def step(self, action):
+        
+        # call super step first to apply action and sim step
+        obs_buf,reward_buf, reset_terminated, reset_time_outs, extras = super().step(action)
+        
+        # refresh marker only flag is true and visualizer is valid
+        if self.cfg.enable_marker and self._visualizer is not None:
 
-    def get_joint_position_target_from_action(self):
+            # finger tip link state
+            thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:]
+            index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:]
+            middle_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[2],:]
+            ring_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[3],:]
+            pinky_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[4],:]
+            grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
+
+            # lego state
+            lego_state = self._lego.data.root_link_state_w[:,:]
+
+            # refresh visualize and marker
+            marker_pos = torch.cat((
+                thumb_tip_link_state[0:1,:3],
+                index_tip_link_state[0:1,:3],
+                middle_tip_link_state[0:1,:3],
+                ring_tip_link_state[0:1,:3],
+                pinky_tip_link_state[0:1,:3],
+                lego_state[0:1,:3],
+                grasp_fingers_pos[0:1,:3]
+                ),0)
+            
+            marker_rot = torch.cat((
+                thumb_tip_link_state[0:1,3:7],
+                index_tip_link_state[0:1,3:7],
+                middle_tip_link_state[0:1,3:7],
+                ring_tip_link_state[0:1,3:7],
+                pinky_tip_link_state[0:1,3:7],
+                lego_state[0:1,3:7],
+                torch.zeros((1,4),device=self.device)
+                ),0)
+
+            self._visualizer.visualize(
+                marker_pos, 
+                marker_rot)
+
+        return obs_buf,reward_buf, reset_terminated, reset_time_outs, extras
+
+    def _apply_action(self):
+        
 
         # actions 范围 -1 到 1 
         # action index 0-6 : arm velocity (normed), order is same with self._arm_joint_index
         # action index 7-12 : hand real joint position target (normed), order is same with self._hand_real_joint_index
 
+        # ============ arm ============
         # 计算arm position
-        self._joint_pos_target[:, self._arm_joint_index] = self.robot.data.joint_pos[:, self._arm_joint_index] + self.cfg.arm_hand_dof_speed_scale  * self.physics_dt * self.actions[:, :self._arm_joint_num]
+        self._joint_pos_target[:, self._arm_joint_index] = self._robot.data.joint_pos[:, self._arm_joint_index] + self.cfg.arm_hand_dof_speed_scale  * self.physics_dt * self.actions[:, :self._arm_joint_num]
         # 裁减
         self._joint_pos_target[:, self._arm_joint_index] = tensor_clamp(
             self._joint_pos_target[:, self._arm_joint_index], 
@@ -189,14 +236,17 @@ class GraspLegoEnv(RLEnv):
         
         # ============ inspire hand ============
         # action 由 -1,1 映射到实际范围
+        # real joint
+        # print(self._joint_pos_target[0, 8])
         self._joint_pos_target[:, self._hand_real_joint_index] = scale(
             self.actions[:, self._arm_joint_num:],
             self._joint_limit_lower[:,self._hand_real_joint_index],
             self._joint_limit_upper[:,self._hand_real_joint_index]
         )
+     
         # 计算
         self._joint_pos_target[:, self._hand_real_joint_index] = self.cfg.act_moving_average * self._joint_pos_target[:, self._hand_real_joint_index] + (1.0 - self.cfg.act_moving_average) * self._joint_pos_target_lasttime[:, self._hand_real_joint_index]
-        
+
         # 裁减
         self._joint_pos_target[:, self._hand_real_joint_index] = tensor_clamp(
             self._joint_pos_target[:, self._hand_real_joint_index],
@@ -213,124 +263,53 @@ class GraspLegoEnv(RLEnv):
 
         # 根据归一化结果和映射，修改联动关节
         self._joint_pos_target[:, self._hand_virtual_joint_index] = hand_real_joint_pos_target_norm[:,1:6] * (self._joint_limit_upper[:,self._hand_virtual_joint_index] - self._joint_limit_lower[:,self._hand_virtual_joint_index]) + self._joint_limit_lower[:,self._hand_virtual_joint_index]
-
-    def _pre_physics_step(self, actions: torch.Tensor):
-        # 
-        self.actions = actions.clone()
-
-        # self.actions = torch.tensor([0,0.45,0,1.78,0,-0.5,-2.54,0,0,0,0,0,0],device="cuda:0").unsqueeze(0).repeat(self.num_envs,1)
-      
-    def step(self, action):
         
-        # step_start = time.time()
-
-        # call super step first to apply action and sim step
-        obs_buf,reward_buf, reset_terminated, reset_time_outs, extras = super().step(action)
-        
-        # finger tip link state
-        thumb_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[0],:]
-        index_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[1],:]
-        middle_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[2],:]
-        ring_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[3],:]
-        pinky_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[4],:]
-        
-        grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
-
-        # lego state
-        lego_state =  self.lego.data.root_link_state_w[:,:]
-
-        # refresh visualize and marker
-        marker_pos = torch.cat((
-            thumb_tip_link_state[0:1,:3],
-            index_tip_link_state[0:1,:3],
-            middle_tip_link_state[0:1,:3],
-            ring_tip_link_state[0:1,:3],
-            pinky_tip_link_state[0:1,:3],
-            lego_state[0:1,:3],
-            grasp_fingers_pos[0:1,:3]
-            ),0)
-        
-        marker_rot = torch.cat((
-            thumb_tip_link_state[0:1,3:7],
-            index_tip_link_state[0:1,3:7],
-            middle_tip_link_state[0:1,3:7],
-            ring_tip_link_state[0:1,3:7],
-            pinky_tip_link_state[0:1,3:7],
-            lego_state[0:1,3:7],
-            # torch.zeros((self.num_envs,4),device="cuda:0")
-            torch.zeros((1,4),device="cuda:0")
-            ),0)
-
-        self.visualizer.visualize(
-            marker_pos, 
-            marker_rot)
-
-        # step_finish = time.time()
-
-        # print('Step运行时间:%s毫秒' % ((step_finish - step_start)*1000))
-        
-        return obs_buf,reward_buf, reset_terminated, reset_time_outs, extras
-
-    def _apply_action(self):
-        
-        # apply_action_start = time.time()
-
-        # action -> joint position target 
-        self.get_joint_position_target_from_action()
-        
-        # get_joint_pos_target_finish = time.time()
-
         # store variables 
         self._joint_pos_target_lasttime = self._joint_pos_target.clone()
 
         # set joint position target
-        self.robot.set_joint_position_target(self._joint_pos_target)
 
-        # update data to simulator, position target will not work without this step
-        # self.robot.write_data_to_sim()
-
-        apply_action_finish = time.time()
-
-        # print('get_joint_pos_target_:%s, apply_action:%s,' % (
-        #     (get_joint_pos_target_finish - apply_action_start)*1000,
-        #     (apply_action_finish - get_joint_pos_target_finish)*1000,
-        #     )
-        # )
+        self._robot.set_joint_position_target(
+            self._joint_pos_target
+            ) # type: ignore
 
     def _get_observations(self) -> dict:
         
-        observation_start = time.time()
-
         # ********** Get Data First **********
         # Tip： Get Link Position 都是世界坐标系，应该转换为局部坐标系
 
-        # if self.robot.cameras:
+        # For test
+        # if self.scene.robots["robot"].cameras:
         #     import matplotlib.pyplot as plt
-        #     key = list(self.robot.cameras.keys())[0]
-        #     image = self.robot.cameras[key].data.output["rgb"][0,:,:,:]
-        #     plt.imshow(image.cpu())
-        #     plt.pause(0.001)
-        #     parse_step_data(self._data,self,self.cfg)
+        #     key = list(self.scene.robots["robot"].tiled_cameras.keys())[0]
+        #     image1 = self.scene.robots["robot"].tiled_cameras[key].data.output["rgb"]
+        #     image2 = self.scene.tiled_cameras["front_camera"].data.output["rgb"]
+        #     image3 = self.scene.tiled_cameras["top_camera"].data.output["rgb"]
+            # image = self.scene.robots["robot"].tiled_cameras[key].data.output["rgb"][1,:,:,:]
+            # plt.imshow(image.cpu())
+            # plt.pause(0.001)
+            # parse_step_data(self._data,self,self.cfg)
 
         # joint index
-        obs_joint_index = torch.cat((self._arm_joint_index,self._hand_real_joint_index),0) # type: ignore
+        # obs_joint_index = torch.cat((),0) # type: ignore
 
+        obs_joint_index = self._arm_joint_index + self._hand_real_joint_index
         # joint state
-        joint_pos = self.robot.data.joint_pos[:,obs_joint_index].clone()
-        joint_vel = self.robot.data.joint_vel[:,obs_joint_index].clone()
+        joint_pos = self._robot.data.joint_pos[:,obs_joint_index].clone()
+        joint_vel = self._robot.data.joint_vel[:,obs_joint_index].clone()
 
         # finger tip link state
-        thumb_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
-        index_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone() 
-        middle_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[2],:].clone()
-        ring_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[3],:].clone()
-        pinky_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[4],:].clone()
+        thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
+        index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone() 
+        middle_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[2],:].clone()
+        ring_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[3],:].clone()
+        pinky_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[4],:].clone()
 
         # hand base state 
-        hand_base_state = self.robot.data.body_link_state_w[:,self._hand_base_link_index,:].clone()
+        hand_base_state = self._robot.data.body_link_state_w[:,self._hand_base_link_index,:].clone()
 
         # lego state
-        lego_state =  self.lego.data.root_link_state_w[:,:].clone()
+        lego_state =  self._lego.data.root_link_state_w[:,:].clone()
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
@@ -340,8 +319,6 @@ class GraspLegoEnv(RLEnv):
         pinky_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         hand_base_state[:,:3] -= self.scene.env_origins[:,:]
         lego_state[:,:3] -= self.scene.env_origins[:,:]
-
-        getdata = time.time()
 
 
         # ********** Get Observation Second **********
@@ -369,8 +346,6 @@ class GraspLegoEnv(RLEnv):
         # 小拇指
         self._obs[:,38:41] =  pinky_tip_link_state[:,:3] - lego_state[:,:3]
 
-        befor_action = time.time()
-
         # 41:53 => action , 13 dim
         self._obs[:,41:54] = self.actions.clone()
 
@@ -397,18 +372,9 @@ class GraspLegoEnv(RLEnv):
         # 76:82 =>lego_pose, 3 dim
         self._obs[:,127:130] = lego_state[:,10:]
 
-        befor_observations = time.time()
-
-        # todo : critic obs不确定是什么且为和必须，缺少会报错，暂时设置为和obs一样
+        # critic obs不确定是什么且为和必须，缺少会报错，暂时设置为和obs一样
         observations = {"policy": self._obs, "critic":self._obs}
 
-        observation_finish = time.time()
-        # print('*******************************')
-        # print('observation_total :%s毫秒' % ((observation_finish - observation_start)*1000))
-        # print('befor_action :%s毫秒' % ((befor_action - getdata)*1000))
-        # print('befor_observations :%s毫秒' % ((befor_observations - befor_action)*1000,))
-        
-        # print('*******************************')
         return observations
 
     def _get_current_rewards_and_penalty (self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -418,11 +384,11 @@ class GraspLegoEnv(RLEnv):
         # ********** Get Data First **********
 
         # finger tip link state
-        thumb_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
-        index_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
+        thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
+        index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
 
         # lego state
-        lego_state =  self.lego.data.root_link_state_w[:,:].clone()
+        lego_state =  self._lego.data.root_link_state_w[:,:].clone()
 
         # lego target position
         lego_target_pos = self._lego_init_pose[:,:3].clone() + torch.tensor([0, 0, self.cfg.lift_height_target],device=self.device).repeat(self.num_envs, 1)
@@ -434,8 +400,6 @@ class GraspLegoEnv(RLEnv):
         lego_target_pos[:,:3] -= self.scene.env_origins[:,:]
         # ********** Get Data First **********
 
-        # reward_start = time.time()
-
         # 食指和中指距离目标距离和越小,奖励越大， 最小距离 0.01
         """
             dis_reward = 1.0 * e ^ ( - 5 * x ) , x范围 [0.02,)
@@ -445,9 +409,6 @@ class GraspLegoEnv(RLEnv):
         # 定义拇指和食指距离乐高块的距离之和
         finger_dist = sum([torch.norm(lego_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
         distance_reward = 1.0 * torch.exp(- 5 * torch.clamp(finger_dist - torch.tensor(0.02,device = self.device), torch.tensor(0,device = self.device), None))
-
-        # print(finger_dist)
-        # distance_reward_finish = time.time()
 
         # 食指和拇指中点距目标的距离
         """
@@ -481,8 +442,6 @@ class GraspLegoEnv(RLEnv):
         angle_dist = compute_angle_line_plane(thumb_tip_link_state[:,:3], index_tip_link_state[:,:3], self._z_unit_tensor)
         angle_reward = distance_reward * torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5 # type: ignore
         
-        # angle_reward_finish = time.time()
-
         # define lift reward
         """
             lift_reward max 720
@@ -492,8 +451,6 @@ class GraspLegoEnv(RLEnv):
         # Todo:确认lego距离期望位置的距离，与期望捡起高度的插值，有什么具体意义？是否正确
         lift_reward = pose_dist * 400 * torch.clamp((self._lift_height_target- goal_dist), -0.05, None)
         
-        # goal_dist_finish = time.time()
-
         # Penalize actions
         action_penalty = 0.001 * torch.sum(self.actions[:, :self._arm_joint_num] ** 2, dim=-1)
         action_penalty += 0.001 * torch.sum((self._joint_pos_target[:, self._hand_real_joint_index]- self._joint_pos_target_lasttime[:, self._hand_real_joint_index]) ** 2, dim=-1)
@@ -502,46 +459,28 @@ class GraspLegoEnv(RLEnv):
 
     def _get_rewards(self) -> torch.Tensor:
         
-        reward_start  = time.time()
-        
         distance_reward,pose_reward,lift_reward,angle_reward,action_penalty = self._get_current_rewards_and_penalty()
 
-        # action_penalty_finish = time.time()
         # compute total reward
-        # total_reward = distance_reward
-        total_reward = (distance_reward + pose_reward + lift_reward + angle_reward  - self.E_prev) - action_penalty
+        total_reward = (distance_reward + pose_reward + lift_reward + angle_reward  - self._reward_lasttime) - action_penalty
         
-        # other data
-        # z_lift = torch.abs(self._lego_init_pose[:, 2] + self._lift_height_target - lego_state[:,2])
-        # xy_move = torch.norm(self._lego_init_pose[:, :2] - lego_state[:,:2], p=2, dim=-1)
-
         self.extras['dist_reward'] += distance_reward - self.pre_distance_reward # type: ignore
         self.extras['pose_reward'] += pose_reward  - self.pre_pose_reward# type: ignore
         self.extras['lego_up_reward'] += lift_reward - self.pre_lift_reward# type: ignore
         self.extras['angle_reward'] += angle_reward - self.pre_angle_reward# type: ignore
         self.extras['action_penalty'] += action_penalty # type: ignore
-        # self.extras['dist_reward'] = distance_reward # type: ignore
-        # self.extras['pose_reward'] = pose_reward# type: ignore
-        # self.extras['lego_up_reward'] = lift_reward# type: ignore
-        # self.extras['angle_reward'] = angle_reward# type: ignore
-        # self.extras['action_penalty'] = action_penalty # type: ignore
-
-        # self.extras['z_lift'] = z_lift # type: ignore
-        # self.extras['xy_move'] = xy_move # type: ignore
 
         # compute mean reward
         self.extras['mean_reward'] += total_reward.mean().to('cpu') # type: ignore
-        # self.extras['mean_reward'] = total_reward.mean().to('cpu') # type: ignore
 
         # print(self.common_step_counter)
         self.pre_distance_reward = distance_reward
         self.pre_pose_reward = pose_reward
         self.pre_lift_reward = lift_reward
         self.pre_angle_reward = angle_reward
-        self.E_prev = distance_reward + pose_reward + lift_reward + angle_reward
+        self._reward_lasttime = distance_reward + pose_reward + lift_reward + angle_reward
 
-        # self.E_prev = distance_reward
-        reward_finish = time.time()
+ 
 
         # print('*******************************')
         # print('reward_total :%s毫秒' % ((reward_finish - reward_start)*1000))
@@ -557,18 +496,15 @@ class GraspLegoEnv(RLEnv):
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
 
-        # get_dones_start = time.time()
-
+        #
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
-        # time_out_time = time.time()
-
         # finger tip link state
-        thumb_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
-        index_tip_link_state = self.robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
+        thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
+        index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
 
         # lego state
-        lego_state =  self.lego.data.root_link_state_w[:,:].clone()
+        lego_state =  self._lego.data.root_link_state_w[:,:].clone()
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
@@ -579,7 +515,8 @@ class GraspLegoEnv(RLEnv):
         finger_dist = sum([torch.norm(lego_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
 
         # todo:确认重置规则，GYM源代码中只有一个env，所以不确定是一个完成所有重置，还是谁完成谁重置
-        self._resets = torch.where(finger_dist <= -1, torch.ones_like(self._resets), self._resets)# type: ignore
+        resets = torch.where(finger_dist <= -1, torch.ones(self.num_envs,device=self.device), torch.zeros(self.num_envs,device=self.device))# type: ignore
+
 
         # reset_time = time.time()
 
@@ -590,34 +527,35 @@ class GraspLegoEnv(RLEnv):
         
 
         # print('*******************************')
-        return self._resets, time_out
+        return resets, time_out
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         
         #
         # self._data = create_empty_data(self,self.cfg)
 
-        # Todo：why do this?
+        # why do this?
         if env_ids is None or len(env_ids) == self.num_envs:
-            env_ids = self.robot._ALL_INDICES
+            env_ids = self._robot._ALL_INDICES
     
         # 
         super()._reset_idx(env_ids) # type: ignore
 
-        # run 100 step until all rigid is static
-        for i in range(10):
+        # run 50 step until all rigid is static
+        for i in range(50):
             self.sim.step(render=False)
             self.scene.update(dt=self.physics_dt)
 
-        # store variables
-        self._lego_init_pose = self.lego.data.root_link_state_w[:,:7].clone()
-        # print(self._lego_init_pose[0,:])
+        print(self._lego.data.root_pos_w[:,:3]-self.scene.env_origins)
 
-        # ############ 重置变量  ################
+        # store variables
+        self._lego_init_pose = self._lego.data.root_link_state_w[:,:7].clone()
+
+        # ############ Reset All Variables ################
 
         # fix: set pre value acoording to joint default position
-        self._joint_pos_target = self.robot.data.default_joint_pos.clone()
-        self._joint_pos_target_lasttime = self.robot.data.default_joint_pos.clone()
+        self._joint_pos_target = self._robot.data.default_joint_pos.clone()
+        self._joint_pos_target_lasttime = self._robot.data.default_joint_pos.clone()
 
         # compute reward
         distance_reward,pose_reward,lift_reward,angle_reward,action_penalty = self._get_current_rewards_and_penalty()
@@ -627,8 +565,7 @@ class GraspLegoEnv(RLEnv):
         self.pre_pose_reward = pose_reward
         self.pre_lift_reward = lift_reward
         self.pre_angle_reward = angle_reward
-        self.E_prev = distance_reward + pose_reward + lift_reward + angle_reward
-        # self.E_prev = distance_reward
+        self._reward_lasttime = distance_reward + pose_reward + lift_reward + angle_reward
 
         # print and log info
         if self.cfg.env_id_print_data in env_ids and self.common_step_counter > 0:
@@ -663,13 +600,6 @@ class GraspLegoEnv(RLEnv):
         
         # update episodes
         self._episodes += 1
-
-
-def get_position_from_relative_to_absolute(self, pos: torch.Tensor)-> torch.Tensor:
-    return pos+self.scene.env_origins[:,:]
-
-def get_position_from_absolute_to_relative(self, pos: torch.Tensor)-> torch.Tensor:
-    return pos-self.scene.env_origins[:,:]
 
 
 @torch.jit.script

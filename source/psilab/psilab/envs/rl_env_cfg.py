@@ -244,4 +244,12 @@ class RLEnvCfg:
     sample_step : int = 1  # type: ignore
     """ Simulator step numbers per Sample step. """
     
+    async_reset : bool = False
+    """ Environments asynchronous reset, now is only for recording data while playing. """
+
+    enable_random : bool = False  # type: ignore
+    """ Whether enable random or not. """
+    
+    enable_marker : bool = False  # type: ignore
+    """ Whether show marker or not. """
     # Add other flags, Author: Feng Yunduo, Date:2025-04-17, End

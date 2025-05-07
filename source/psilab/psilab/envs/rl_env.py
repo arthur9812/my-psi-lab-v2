@@ -18,6 +18,7 @@ import gymnasium as gym
 import math
 import numpy
 import torch
+from datetime import datetime
 
 """ Omniverse Modules  """ 
 import omni.kit.app
@@ -186,9 +187,12 @@ class RLEnv(gym.Env):
         # allocate dictionary to store metrics
         self.extras = {}
 
-        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
-        self._data = {}
-        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, End
+        #Feature: data definition and output folder change, Author:Feng Yunduo, Date: 2024-05-06, Start
+        self._data : dict = None # type: ignore
+        # change output folder with date and time
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.cfg.output_folder+=f"/{timestamp}" # type: ignore
+        #Feature: data definition and output folder change, Author:Feng Yunduo, Date: 2024-05-06, End
 
         # initialize data and constants
         # -- counter for simulation steps
@@ -310,16 +314,21 @@ class RLEnv(gym.Env):
             while SimulationManager.assets_loading():
                 self.sim.render()
 
-        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
+        #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, Start
         # clear data
-        # if self.cfg.enable_output:
-        #     # single env
-        #     # self._data = create_data_buffer(self,self.cfg)
-        #     # multi env
-        #     self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
-        #     # clear cuda cache
-        #     torch.cuda.empty_cache()
-        #Feature: data output, Author:Feng Yunduo, Date: 2024-04-29, Start
+        if self.cfg.enable_output:
+            if self.scene.num_envs == 1:
+            # single env
+                self._data = create_data_buffer(self,self.cfg)
+            elif self.scene.num_envs >1:
+                # multi env
+                self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+            else:
+                raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
+            # clear cuda cache
+            torch.cuda.empty_cache()
+        #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, End
+
 
         # return observations
         return self._get_observations(), self.extras

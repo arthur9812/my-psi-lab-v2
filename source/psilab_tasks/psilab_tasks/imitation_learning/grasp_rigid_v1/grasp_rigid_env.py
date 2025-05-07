@@ -3,13 +3,10 @@
 # Date: 2025-04-16
 # Vesion: 1.0
 
-
-
 """ Python Modules  """ 
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Generic, SupportsFloat, TypeVar
 from dataclasses import MISSING
-
 
 """ Common Modules  """ 
 import time
@@ -24,7 +21,6 @@ import wandb
 from datetime import datetime
 
 import rl_games.common.a2c_common 
-global fps_step
 
 """ Isaac Sim Modules  """ 
 import isaacsim.core.utils.torch as torch_utils
@@ -48,13 +44,11 @@ from isaaclab.assets import (
     RigidObject,
     RigidObjectCfg,
 )
-from isaaclab.envs import DirectRLEnvCfg, DirectRLEnv
-from isaaclab.scene import InteractiveSceneCfg
-from isaaclab.markers import VisualizationMarkers, VisualizationMarkersCfg
+
 from isaaclab.utils.math import (  # isort:skip
     quat_from_euler_xyz
 )
-from isaaclab.envs.common import SpaceType, ViewerCfg
+from isaaclab.envs.common import ViewerCfg
 
 
 """ Psi Lab Modules  """
@@ -74,13 +68,13 @@ class GraspRigidEnvCfg(ILEnvCfg):
 
     # fake params
     episode_length_s = 1 * 210 / 60.0
-    decimation = 1
     action_scale = 0.5
     action_space = 13
     observation_space = 130
     state_space = 130
 
     # 
+    decimation = 1
     sample_step = 1
 
     # viewer config
@@ -95,7 +89,7 @@ class GraspRigidEnvCfg(ILEnvCfg):
         render_interval=decimation,
         physx = PhysxCfg(
             solver_type = 1, # 0: pgs, 1: tgs
-            max_position_iteration_count = 32,
+            max_position_iteration_count = 16,
             max_velocity_iteration_count = 4,
             bounce_threshold_velocity = 0.002,
             # enable_ccd=False,
@@ -120,7 +114,7 @@ class GraspRigidEnv(ILEnv):
         super().__init__(cfg, render_mode, **kwargs)
 
         # episode
-        self._episode = 0
+        self._episode = -1
         self._episode_success = 0
 
         # instances in scene
@@ -135,14 +129,10 @@ class GraspRigidEnv(ILEnv):
         self.base_policy = load_diffusion_policy_model(
             self.cfg.policy
         ).to(self.device)
-
-        # get timer
-        self._timer = Timer()
-
-
         
     def step(self,actions):
         
+        # For test
         # import matplotlib.pyplot as plt
         # image =self._robot.cameras["base_camera"].data.output["rgb"][0,:,:,:]
         # plt.imshow(image.cpu())
@@ -154,8 +144,8 @@ class GraspRigidEnv(ILEnv):
         eef_state[:,:3] -= self._robot.data.root_state_w[:,:3]
         #
         current_obs = {
-            'base_camera_rgb': process_image(self._robot.cameras["base_camera"].data.output["rgb"][0,:,:,:]),
-            'arm2_camera_rgb': process_image(self._robot.cameras["arm2_camera"].data.output["rgb"][0,:,:,:]),
+            'base_camera_rgb': process_image(self._robot.tiled_cameras["base_camera"].data.output["rgb"][0,:,:,:]),
+            'arm2_camera_rgb': process_image(self._robot.tiled_cameras["arm2_camera"].data.output["rgb"][0,:,:,:]),
             'arm2_pos': self._robot.data.joint_pos[:,self._robot.actuators["arm2"].joint_indices],
             'arm2_vel': self._robot.data.joint_vel[:,self._robot.actuators["arm2"].joint_indices],
             'hand2_pos': self._robot.data.joint_pos[:,self._robot.actuators["hand2"].joint_indices],
@@ -173,7 +163,7 @@ class GraspRigidEnv(ILEnv):
             base_act_seq = self.base_policy.predict_action(current_obs)['action']
             self._action = base_act_seq.squeeze(0)[0]
 
-        # 
+        # sim step according to decimation
         for i in range(self.cfg.decimation):
             # sim step
             self.sim_step()
@@ -185,10 +175,6 @@ class GraspRigidEnv(ILEnv):
         # time out
         if self._sim_step_counter % self.cfg.max_step == 0:
             self.reset()
-
-        # # stop running
-        # if self._episode >= self.cfg.max_episode:
-        #     GlobalVariant().is_runing = False
 
         return super().step(actions)
         
@@ -242,7 +228,7 @@ class GraspRigidEnv(ILEnv):
             self.scene.rigid_objects["bottle"],
             contact_sensors, # type: ignore
             ): 
-            print("Failed")
+            # print("Failed")
             self.reset()
         
         # 成功判断
@@ -251,28 +237,29 @@ class GraspRigidEnv(ILEnv):
             self.scene.rigid_objects["bottle"],
             contact_sensors, # type: ignore
             0.3): 
-            print("Success")
+            # print("Success")
             if self.cfg.enable_output:
                 save_data(self._data,self.cfg)
-
+            # 
             self._episode_success += 1
-
-            # record_time = self._timer.run_time() /60.0
-            # record_rate = self._episode_success / record_time
-            #   
-            print(f"Policy Success Rate: {self._episode_success/self._episode * 100} %")
-
             self.reset()
 
         self._sim_step_counter += 1
        
-
     def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
         # 
         self._episode += 1
         #
         return super().reset()
 
+    @property
+    def episode(self):
+        return self._episode
+    
+    @property
+    def episode_success(self):
+        return self._episode_success
+    
 # 将数据根据上下限制归一化至 [0,1]
 @torch.jit.script
 def norm(x, lower, upper):

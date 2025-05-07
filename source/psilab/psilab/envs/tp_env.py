@@ -38,10 +38,6 @@ class TPEnv(RLEnv):
         self.cfg = cfg
         # 
         self._data : dict = None # type: ignore
-        
-        # change output folder with date and time
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.cfg.output_folder+=f"/{timestamp}" # type: ignore
 
         # fake state which is useless
         self._obs_zero = {

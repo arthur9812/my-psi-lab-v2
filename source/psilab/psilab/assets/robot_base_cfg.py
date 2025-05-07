@@ -10,7 +10,7 @@ from dataclasses import MISSING
 from isaaclab.utils import configclass
 from isaaclab.assets.articulation import Articulation
 from isaaclab.assets.articulation import ArticulationCfg
-from isaaclab.sensors.camera import CameraCfg,Camera
+from isaaclab.sensors.camera import CameraCfg,Camera,TiledCameraCfg
 
 
 """ PsiLab Modules  """ 
@@ -34,6 +34,9 @@ class RobotBaseCfg(ArticulationCfg):
 
     cameras: dict[str, CameraCfg] = MISSING     # type: ignore
     """Cameras Config for the robot with corresponding camera names."""
+
+    tiled_cameras: dict[str, TiledCameraCfg] = MISSING     # type: ignore
+    """Tiled Cameras Config for the robot with corresponding camera names."""
 
 
 

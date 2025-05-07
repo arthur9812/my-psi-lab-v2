@@ -31,12 +31,12 @@ class ILEnv(RLEnv):
         #
         self.cfg = cfg
         # 
-        self._data : dict = None # type: ignore
-        #
-        self._is_runing : bool = True
-        # change output folder with date and time
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.cfg.output_folder+=f"/{timestamp}" # type: ignore
+        # self._data : dict = None # type: ignore
+        # #
+        # # self._is_runing : bool = True
+        # # change output folder with date and time
+        # timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # self.cfg.output_folder+=f"/{timestamp}" # type: ignore
 
         # fake state
         self._obs_zero = {
@@ -80,8 +80,8 @@ class ILEnv(RLEnv):
         torch.cuda.empty_cache()
         return super().reset()
 
-    def is_runing(self):
-        return self._is_runing
+    # def is_runing(self):
+    #     return self._is_runing
     """
     Functions for RL env which is useless in IL env
     """

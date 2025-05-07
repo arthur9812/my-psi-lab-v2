@@ -4,6 +4,7 @@ import os
 import toml
 
 # Conveniences to other module directories via relative paths
+PSILAB_TEXTURE_ASSET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../assets/texture"))
 PSILAB_USD_ASSET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../assets/usd"))
 PSILAB_URDF_ASSET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../assets/urdf"))
 

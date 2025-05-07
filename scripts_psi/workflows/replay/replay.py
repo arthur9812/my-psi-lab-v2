@@ -94,8 +94,10 @@ env_cfg.scene = parse_scene_cfg(
 # clear camera configs in scene while "enable_cameras" flag is True
 if enable_cameras is False:
     env_cfg.scene.cameras_cfg ={}
+    env_cfg.scene.tiled_cameras_cfg = {}
     for robot_cfg in env_cfg.scene.robots_cfg.values():
         robot_cfg.cameras = {} # type: ignore
+        robot_cfg.tiled_cameras = {} # type: ignore
 
 # create env
 env = gym.make(args_cli.task, cfg=env_cfg)
