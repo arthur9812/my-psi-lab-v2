@@ -40,6 +40,11 @@ def create_data_buffer(env, cfg) -> dict :
             # multi-type
             for data_type in camera.cfg.data_types:
                 data["robots"][robot_name][camera_name+ "." + data_type] = []
+        # add tiled cameras 
+        for camera_name,camera in robot.tiled_cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                data["robots"][robot_name][camera_name+ "." + data_type] = []
         # add contact sensors
         for contact_name in robot.cameras.keys():
             data["robots"][robot_name][contact_name] = []
@@ -74,6 +79,11 @@ def create_data_buffer(env, cfg) -> dict :
         # multi-type
         for data_type in camera.cfg.data_types:
             data["cameras"][camera_name+ "." + data_type] = []
+    # add tiled cameras
+    for camera_name,camera in env.scene.tiled_cameras.items():
+        # multi-type
+        for data_type in camera.cfg.data_types:
+            data["cameras"][camera_name+ "." + data_type] = []
     #
     return data
 
@@ -100,6 +110,13 @@ def parse_data(data: dict, env, cfg) -> dict :
             for data_type in camera.cfg.data_types:
                 image = camera.data.output[data_type].clone()
                 data["robots"][robot_name][camera_name+ "." + data_type].append(image[0,:,:,:])
+        # add tiled cameras
+        for camera_name,camera in robot.tiled_cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                image = camera.data.output[data_type].clone()
+                data["robots"][robot_name][camera_name+ "." + data_type].append(image[0,:,:,:])
+
         # # add contact sensors
         # for contact_name,contact in robot.cameras.items():
         #     self._data["robots"][robot_name][contact_name].append()

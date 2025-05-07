@@ -250,6 +250,8 @@ class GraspRigidEnv(ILEnv):
         # 
         self._episode += 1
         #
+        self._sim_step_counter=0
+        #
         return super().reset()
 
     @property

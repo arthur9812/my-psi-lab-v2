@@ -262,6 +262,7 @@ ROOM_SCENE_CFG = SceneCfg(
         
         # tiled camera sensor
         tiled_cameras_cfg={},
+        
         # contact sensor
         contact_sensors_cfg={
             "left_hand": ContactSensorCfg(
