@@ -59,7 +59,7 @@ EMPTY_SCENE_CFG = SceneCfg(
             "robot" : RobotBaseCfg(
                 prim_path = "/World/envs/env_[0-9]+/Robot",
                 spawn = sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_AWH_01/Version_3.0/PsiRobot_AWH_01_Left.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_AWH_01/Version_4.0/PsiRobot_AWH_01_Left.usd",
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                         enabled_self_collisions=False,
                     ),
@@ -126,8 +126,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                 },
                 diff_ik_controllers = {},
                 eef_links={
-                    "arm1":"arm1_link7",
-                    "arm2":"arm2_link7"
+                    "arm":"link7_left",
                 },
                 cameras = {},
                 tiled_cameras={

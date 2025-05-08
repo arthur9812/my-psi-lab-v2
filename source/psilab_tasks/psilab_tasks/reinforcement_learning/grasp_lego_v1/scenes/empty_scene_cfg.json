@@ -42,7 +42,7 @@
                 "articulation_props": {
                     "enabled_self_collisions": true
                 },
-                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/robots/PsiRobot_AWH_01/Version_3.0/PsiRobot_AWH_01_Left.usd"
+                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/robots/PsiRobot_AWH_01/Version_4.0/PsiRobot_AWH_01_Left.usd"
             },
             "init_state": {
                 "pos": [

@@ -130,11 +130,11 @@ class GraspLegoEnv(RLEnv):
         # obervation state
         self._obs = torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device, dtype=torch.float32) # type: ignore
 
-        # joint target position each step, include real and fake joint
-        self._joint_pos_target = self._robot.data.default_joint_pos.clone()
+        # joint target position each step, order is arm, hand
+        self._joint_pos_target = self._robot.data.default_joint_pos[:,self._arm_joint_index+self._hand_real_joint_index].clone()
 
         # joint target position for last step, include real and fake joint
-        self._joint_pos_target_lasttime = self._robot.data.default_joint_pos.clone()
+        self._joint_pos_target_lasttime = self._joint_pos_target.clone()
 
         # reward lasttime
         self._reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
@@ -169,7 +169,7 @@ class GraspLegoEnv(RLEnv):
         # 
         self.actions = actions.clone()
         # just for test
-        # self.actions = torch.tensor([0,0.45,0,1.78,0,-0.5,-2.54,0,0,0,0,0,0],device="cuda:0").unsqueeze(0).repeat(self.num_envs,1)
+        # self.actions = torch.tensor([0,0.45,0,1.78,0,-0.5,-2.54,0,1.75,1.75,1.75,1.75,1.75],device="cuda:0").unsqueeze(0).repeat(self.num_envs,1)
       
     def step(self, action):
         
@@ -226,51 +226,39 @@ class GraspLegoEnv(RLEnv):
 
         # ============ arm ============
         # 计算arm position
-        self._joint_pos_target[:, self._arm_joint_index] = self._robot.data.joint_pos[:, self._arm_joint_index] + self.cfg.arm_hand_dof_speed_scale  * self.physics_dt * self.actions[:, :self._arm_joint_num]
+        self._joint_pos_target[:, :self._arm_joint_num] = self._robot.data.joint_pos[:, self._arm_joint_index] + self.cfg.arm_hand_dof_speed_scale  * self.physics_dt * self.actions[:, :self._arm_joint_num]
         # 裁减
-        self._joint_pos_target[:, self._arm_joint_index] = tensor_clamp(
-            self._joint_pos_target[:, self._arm_joint_index], 
+        self._joint_pos_target[:, :self._arm_joint_num] = tensor_clamp(
+            self._joint_pos_target[:, :self._arm_joint_num], 
             self._joint_limit_lower[:,self._arm_joint_index],
             self._joint_limit_upper[:,self._arm_joint_index]
         )
         
         # ============ inspire hand ============
         # action 由 -1,1 映射到实际范围
-        # real joint
-        # print(self._joint_pos_target[0, 8])
-        self._joint_pos_target[:, self._hand_real_joint_index] = scale(
+        self._joint_pos_target[:, self._arm_joint_num:] = scale(
             self.actions[:, self._arm_joint_num:],
             self._joint_limit_lower[:,self._hand_real_joint_index],
             self._joint_limit_upper[:,self._hand_real_joint_index]
         )
      
         # 计算
-        self._joint_pos_target[:, self._hand_real_joint_index] = self.cfg.act_moving_average * self._joint_pos_target[:, self._hand_real_joint_index] + (1.0 - self.cfg.act_moving_average) * self._joint_pos_target_lasttime[:, self._hand_real_joint_index]
+        self._joint_pos_target[:, self._arm_joint_num:] = self.cfg.act_moving_average * self._joint_pos_target[:, self._hand_real_joint_index] + (1.0 - self.cfg.act_moving_average) * self._joint_pos_target_lasttime[:, self._arm_joint_num:]
 
         # 裁减
-        self._joint_pos_target[:, self._hand_real_joint_index] = tensor_clamp(
-            self._joint_pos_target[:, self._hand_real_joint_index],
+        self._joint_pos_target[:, self._arm_joint_num:] = tensor_clamp(
+            self._joint_pos_target[:, self._arm_joint_num:],
             self._joint_limit_lower[:,self._hand_real_joint_index],
             self._joint_limit_upper[:,self._hand_real_joint_index]
         )
 
-        # virtual tendon
-        hand_real_joint_pos_target_norm = norm(
-            self._joint_pos_target[:, self._hand_real_joint_index],
-            self._joint_limit_lower[:,self._hand_real_joint_index],
-            self._joint_limit_upper[:,self._hand_real_joint_index]
-        )
-
-        # 根据归一化结果和映射，修改联动关节
-        self._joint_pos_target[:, self._hand_virtual_joint_index] = hand_real_joint_pos_target_norm[:,1:6] * (self._joint_limit_upper[:,self._hand_virtual_joint_index] - self._joint_limit_lower[:,self._hand_virtual_joint_index]) + self._joint_limit_lower[:,self._hand_virtual_joint_index]
-        
         # store variables 
         self._joint_pos_target_lasttime = self._joint_pos_target.clone()
 
         # set joint position target
-
         self._robot.set_joint_position_target(
-            self._joint_pos_target
+            self._joint_pos_target,
+            self._arm_joint_index + self._hand_real_joint_index
             ) # type: ignore
 
     def _get_observations(self) -> dict:
@@ -453,7 +441,7 @@ class GraspLegoEnv(RLEnv):
         
         # Penalize actions
         action_penalty = 0.001 * torch.sum(self.actions[:, :self._arm_joint_num] ** 2, dim=-1)
-        action_penalty += 0.001 * torch.sum((self._joint_pos_target[:, self._hand_real_joint_index]- self._joint_pos_target_lasttime[:, self._hand_real_joint_index]) ** 2, dim=-1)
+        action_penalty += 0.001 * torch.sum((self._joint_pos_target[:, self._arm_joint_num:]- self._joint_pos_target_lasttime[:, self._arm_joint_num:]) ** 2, dim=-1)
 
         return distance_reward, pose_reward, lift_reward,angle_reward, action_penalty
 
@@ -531,9 +519,6 @@ class GraspLegoEnv(RLEnv):
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         
-        #
-        # self._data = create_empty_data(self,self.cfg)
-
         # why do this?
         if env_ids is None or len(env_ids) == self.num_envs:
             env_ids = self._robot._ALL_INDICES
@@ -546,16 +531,14 @@ class GraspLegoEnv(RLEnv):
             self.sim.step(render=False)
             self.scene.update(dt=self.physics_dt)
 
-        print(self._lego.data.root_pos_w[:,:3]-self.scene.env_origins)
-
         # store variables
         self._lego_init_pose = self._lego.data.root_link_state_w[:,:7].clone()
 
         # ############ Reset All Variables ################
 
         # fix: set pre value acoording to joint default position
-        self._joint_pos_target = self._robot.data.default_joint_pos.clone()
-        self._joint_pos_target_lasttime = self._robot.data.default_joint_pos.clone()
+        self._joint_pos_target = self._robot.data.default_joint_pos[:,self._arm_joint_index+self._hand_real_joint_index].clone()
+        self._joint_pos_target_lasttime =  self._joint_pos_target.clone()
 
         # compute reward
         distance_reward,pose_reward,lift_reward,angle_reward,action_penalty = self._get_current_rewards_and_penalty()
