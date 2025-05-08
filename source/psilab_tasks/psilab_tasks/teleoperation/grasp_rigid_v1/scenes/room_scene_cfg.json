@@ -211,6 +211,10 @@
                     "eef_link_name": "arm2_link7"
                 }
             },
+            "eef_links": {
+                "arm1": "arm1_link7",
+                "arm2": "arm2_link7"
+            },
             "cameras": {},
             "tiled_cameras": {
                 "base_camera": {

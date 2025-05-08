@@ -172,6 +172,10 @@ ROOM_SCENE_CFG = SceneCfg(
                     ),
                 },
                 diff_ik_controllers = {},
+                eef_links={
+                    "arm1":"arm1_link7",
+                    "arm2":"arm2_link7"
+                },
                 cameras = {},
                 tiled_cameras={
                     "base_camera": TiledCameraCfg(
@@ -238,7 +242,7 @@ ROOM_SCENE_CFG = SceneCfg(
             "bottle" : RigidObjectCfg(
                 prim_path="/World/Bottle",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/drink-B36-V1/B36.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/drink-B36-V1/B36.usd",           
                     scale=(0.0006, 0.0006, 0.0006),
                     visual_material=None,
                     rigid_props=RigidBodyPropertiesCfg(

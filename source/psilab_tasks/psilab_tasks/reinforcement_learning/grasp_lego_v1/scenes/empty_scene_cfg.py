@@ -125,6 +125,10 @@ EMPTY_SCENE_CFG = SceneCfg(
                     ),
                 },
                 diff_ik_controllers = {},
+                eef_links={
+                    "arm1":"arm1_link7",
+                    "arm2":"arm2_link7"
+                },
                 cameras = {},
                 tiled_cameras={
                     "wrist_camera": TiledCameraCfg(

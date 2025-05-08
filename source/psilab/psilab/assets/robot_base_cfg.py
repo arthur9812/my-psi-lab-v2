@@ -38,6 +38,9 @@ class RobotBaseCfg(ArticulationCfg):
     tiled_cameras: dict[str, TiledCameraCfg] = MISSING     # type: ignore
     """Tiled Cameras Config for the robot with corresponding camera names."""
 
+    eef_links: dict[str, str] = MISSING     # type: ignore
+    """End of effactor links. """
+
 
 
 

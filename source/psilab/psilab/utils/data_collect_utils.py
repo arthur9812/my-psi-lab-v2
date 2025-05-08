@@ -32,9 +32,9 @@ def create_data_buffer(env, cfg) -> dict :
             data["robots"][robot_name][actuator_name+"_pos"] = []
             data["robots"][robot_name][actuator_name+"_vel"] = []
         # add eef state according to ik controllers
-        for ik_name in robot.ik_controllers.keys():
-            data["robots"][robot_name][ik_name+"_eef_pose"] = []
-            data["robots"][robot_name][ik_name+"_vel"] = []
+        for eef_name in robot.eef_links.keys():
+            data["robots"][robot_name][eef_name+"_eef_pose"] = []
+            data["robots"][robot_name][eef_name+"_vel"] = []
         # add cameras 
         for camera_name,camera in robot.cameras.items():
             # multi-type
@@ -99,11 +99,11 @@ def parse_data(data: dict, env, cfg) -> dict :
             data["robots"][robot_name][actuator_name+"_pos"].append(robot.data.joint_pos[0,actuator.joint_indices])
             data["robots"][robot_name][actuator_name+"_vel"].append(robot.data.joint_vel[0,actuator.joint_indices])
         # add eef state according to ik controllers
-        for ik_name,ik in robot.ik_controllers.items():
+        for eef_name,eef_index in robot.eef_links.items():
             # transform eef position from world coordinate to robot coordinate
-            eef_state = robot.data.body_link_state_w[0,ik.eef_link_index,:7].clone()
+            eef_state = robot.data.body_link_state_w[0,eef_index,:7].clone()
             eef_state[:3] -= robot.data.root_state_w[0,:3]
-            data["robots"][robot_name][ik_name+"_eef_pose"].append(eef_state)
+            data["robots"][robot_name][eef_name+"_eef_pose"].append(eef_state)
         # add cameras
         for camera_name,camera in robot.cameras.items():
             # multi-type
@@ -175,9 +175,9 @@ def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
                 data[f"env_{i}"]["robots"][robot_name][actuator_name+"_pos"] = []
                 data[f"env_{i}"]["robots"][robot_name][actuator_name+"_vel"] = []
             # add eef state according to ik controllers
-            for ik_name in robot.ik_controllers.keys():
-                data[f"env_{i}"]["robots"][robot_name][ik_name+"_eef_pose"] = []
-                data[f"env_{i}"]["robots"][robot_name][ik_name+"_vel"] = []
+            for eef_name in robot.eef_links.keys():
+                data[f"env_{i}"]["robots"][robot_name][eef_name+"_eef_pose"] = []
+                data[f"env_{i}"]["robots"][robot_name][eef_name+"_vel"] = []
             # add cameras 
             for camera_name,camera in robot.cameras.items():
                 # multi-type
@@ -234,11 +234,11 @@ def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
                 data[f"env_{i}"]["robots"][robot_name][actuator_name+"_pos"].append(robot.data.joint_pos[i,actuator.joint_indices].cpu())
                 data[f"env_{i}"]["robots"][robot_name][actuator_name+"_vel"].append(robot.data.joint_vel[i,actuator.joint_indices].cpu())
             # add eef state according to ik controllers
-            for ik_name,ik in robot.ik_controllers.items():
+            for eef_name,eef_index in robot.eef_links.items():
                 # transform eef position from world coordinate to robot coordinate
-                eef_state = robot.data.body_link_state_w[i,ik.eef_link_index,:7].cpu()
+                eef_state = robot.data.body_link_state_w[i,eef_index,:7].cpu()
                 eef_state[:3] -= robot.data.root_state_w[i,:3]
-                data[f"env_{i}"]["robots"][robot_name][ik_name+"_eef_pose"].append(eef_state.cpu())
+                data[f"env_{i}"]["robots"][robot_name][eef_name+"_eef_pose"].append(eef_state.cpu())
             # add cameras
             for camera_name,camera in robot.cameras.items():
                 # multi-type

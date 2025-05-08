@@ -211,6 +211,10 @@ ROOM_SCENE_CFG = SceneCfg(
                     ),
     
                 },
+                eef_links={
+                    "arm1":"arm1_link7",
+                    "arm2":"arm2_link7"
+                },
                 cameras = {},
                 tiled_cameras={
                     "base_camera": TiledCameraCfg(
@@ -235,6 +239,7 @@ ROOM_SCENE_CFG = SceneCfg(
                         spawn=None,
                     ),
                 }
+            
             )
         },
         

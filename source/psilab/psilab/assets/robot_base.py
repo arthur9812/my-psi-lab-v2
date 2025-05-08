@@ -38,6 +38,7 @@ class RobotBase(Articulation):
 
     ik_controllers : dict[str,DiffIKController] = None # type: ignore
 
+    eef_links : dict[str,int] = None # type: ignore
 
     def __init__(self, cfg: RobotBaseCfg):
         """Initialize the Robot.
@@ -50,11 +51,12 @@ class RobotBase(Articulation):
         self.cameras = {}
         self.tiled_cameras = {}
         self.ik_controllers = {}
-        
+        self.eef_links = {}
+
     def _initialize_impl(self):
 
         super()._initialize_impl()
-
+        #
         for ik_name,ik_cfg in self.cfg.diff_ik_controllers.items():
             #
             self.ik_controllers[ik_name] = DiffIKController(ik_cfg, num_envs=1, device=self.device)
@@ -62,6 +64,10 @@ class RobotBase(Articulation):
             self.ik_controllers[ik_name].initialize_impl(self)
             #
             # self.ik_controllers[ik_name].reset(self)
+        #
+        for eef_name,eef_link_name in self.cfg.eef_links.items():
+            eef_index = self.find_bodies(eef_link_name)[0][0]
+            self.eef_links[eef_name] = eef_index
 
     def reset(self, env_ids: Sequence[int] | None = None):
         """

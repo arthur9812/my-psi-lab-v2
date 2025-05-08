@@ -33,7 +33,7 @@
     },
     "local_lights_cfg": {},
     "robots_cfg": {
-        "robot1": {
+        "robot": {
             "class_type": "psilab.assets.robot_base:RobotBase",
             "prim_path": "/World/envs/env_.*/Robot1",
             "spawn": {
@@ -125,6 +125,10 @@
                 }
             },
             "diff_ik_controllers": {},
+            "eef_links": {
+                "arm1": "arm1_link7",
+                "arm2": "arm2_link7"
+            },
             "cameras": {
                 "wrist_camera": {
                     "class_type": "isaaclab.sensors.camera.tiled_camera:TiledCamera",
