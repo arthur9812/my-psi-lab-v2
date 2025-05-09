@@ -118,7 +118,7 @@ VUER_PSI_DC_01_CFG = VuerTpCfg(
             low_pass_alpha = 0.5
         ),
 
-    hand_joint_num = 11,
+    hand_retarget_indexs = [0,3,5,7,9,1],
     hand_scale=[1.5,1.0,1.0],
 
     )

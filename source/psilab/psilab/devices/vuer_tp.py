@@ -93,8 +93,8 @@ class VuerTp():
         #
         self.left_wrist_pose = torch.zeros(7,device=self.cfg.device)
         self.right_wrist_pose = torch.zeros(7,device=self.cfg.device)
-        self.left_hand_joint_pos = torch.zeros(cfg.hand_joint_num,device=self.cfg.device)
-        self.right_hand_joint_pos = torch.zeros(cfg.hand_joint_num,device=self.cfg.device)
+        self.left_hand_joint_pos = torch.zeros(len(cfg.hand_retarget_indexs),device=self.cfg.device)
+        self.right_hand_joint_pos = torch.zeros(len(cfg.hand_retarget_indexs),device=self.cfg.device)
         self.left_eye_pose = torch.zeros(7,device=self.cfg.device)
         self.right_eye_pose = torch.zeros(7,device=self.cfg.device)
 
@@ -233,10 +233,12 @@ class VuerTp():
 
         # retarget 关节顺序为 1_1,1_2,1_3,2_1,2_2,3_1,3_2,4_1,4_2,5_1,5_2
         # 但是usd加载到lab后joint顺序为 1_1,2_1,3_1,4_1,5_1,1_2,2_2,3_2,4_2,5_2,1_3，所以要做映射
-        left_qpos = self.left_retargeting.retarget(rel_left_fingers[self.cfg.tip_indices])[[0,3,5,7,9,1,4,6,8,10,2]]
-        right_qpos = self.right_retargeting.retarget(rel_right_fingers[self.cfg.tip_indices])[[0,3,5,7,9,1,4,6,8,10,2]]
-
-
+        # left_qpos = self.left_retargeting.retarget(rel_left_fingers[self.cfg.tip_indices])[[0,3,5,7,9,1,4,6,8,10,2]]
+        # right_qpos = self.right_retargeting.retarget(rel_right_fingers[self.cfg.tip_indices])[[0,3,5,7,9,1,4,6,8,10,2]]
+        left_qpos = self.left_retargeting.retarget(rel_left_fingers[self.cfg.tip_indices])[self.cfg.hand_retarget_indexs]
+        right_qpos = self.right_retargeting.retarget(rel_right_fingers[self.cfg.tip_indices])[self.cfg.hand_retarget_indexs]
+        
+        # scale position in XY plane
         left_pose[:2] = self.cfg.hand_scale[:2] * left_pose[:2]
         right_pose[:2] = self.cfg.hand_scale[:2] * right_pose[:2]
 

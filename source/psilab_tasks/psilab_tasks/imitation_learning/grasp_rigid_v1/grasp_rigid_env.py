@@ -249,8 +249,7 @@ class GraspRigidEnv(ILEnv):
     def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
         # 
         self._episode += 1
-        #
-        self._sim_step_counter=0
+        
         #
         return super().reset()
 

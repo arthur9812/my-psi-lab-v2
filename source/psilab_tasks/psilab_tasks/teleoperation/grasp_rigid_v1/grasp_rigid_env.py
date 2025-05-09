@@ -244,31 +244,15 @@ class GraspRigidEnv(TPEnv):
                 "arm1": self._vuer.left_wrist_pose,
                 "arm2": self._vuer.right_wrist_pose,
             })
-            #
-            # virtual tendon
-            hand_real_joint_pos_target_left_norm = norm(
-                self._vuer.left_hand_joint_pos[:6],
-                self._joint_limit_lower[:,self._hand_real_joint_index_left],
-                self._joint_limit_upper[:,self._hand_real_joint_index_left]
-            )
-            hand_real_joint_pos_target_right_norm = norm(
-                self._vuer.right_hand_joint_pos[:6],
-                self._joint_limit_lower[:,self._hand_real_joint_index_right],
-                self._joint_limit_upper[:,self._hand_real_joint_index_right]
-            )
-
-            # 根据归一化结果和映射，修改联动关节
-            self._vuer.left_hand_joint_pos[6:] = hand_real_joint_pos_target_left_norm[:,1:6] * (self._joint_limit_upper[:,self._hand_virtual_joint_index_left] - self._joint_limit_lower[:,self._hand_virtual_joint_index_left]) + self._joint_limit_lower[:,self._hand_virtual_joint_index_left]
-            self._vuer.right_hand_joint_pos[6:] = hand_real_joint_pos_target_right_norm[:,1:6] * (self._joint_limit_upper[:,self._hand_virtual_joint_index_right] - self._joint_limit_lower[:,self._hand_virtual_joint_index_right]) + self._joint_limit_lower[:,self._hand_virtual_joint_index_right]
-
+           
             # set joint target for hand
             self.scene.robots["robot"].set_joint_position_target(
                 self._vuer.left_hand_joint_pos,
-                self.scene.robots["robot"].actuators["hand1"].joint_indices # type: ignore
+                self.scene.robots["robot"].actuators["hand1"].joint_indices[:6] # type: ignore
             )
             self.scene.robots["robot"].set_joint_position_target(
                 self._vuer.right_hand_joint_pos,
-                self.scene.robots["robot"].actuators["hand2"].joint_indices # type: ignore
+                self.scene.robots["robot"].actuators["hand2"].joint_indices[:6] # type: ignore
             )
 
         if self._vuer.bReset:

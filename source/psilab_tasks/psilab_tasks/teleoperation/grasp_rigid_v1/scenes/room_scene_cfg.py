@@ -62,7 +62,7 @@ ROOM_SCENE_CFG = SceneCfg(
             "robot" : RobotBaseCfg(
                 prim_path = "/World/Robot",
                 spawn = sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
                     activate_contact_sensors = True,
 
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -146,16 +146,16 @@ ROOM_SCENE_CFG = SceneCfg(
                     "hand1": ImplicitActuatorCfg(
                         joint_names_expr=[
                             "hand1_joint_link_1_1",
-                            "hand1_joint_link_1_2",
-                            "hand1_joint_link_1_3",
                             "hand1_joint_link_2_1",
-                            "hand1_joint_link_2_2",
                             "hand1_joint_link_3_1",
-                            "hand1_joint_link_3_2",
                             "hand1_joint_link_4_1",
-                            "hand1_joint_link_4_2",
                             "hand1_joint_link_5_1",
-                            "hand1_joint_link_5_2"],
+                            "hand1_joint_link_1_2",
+                            "hand1_joint_link_2_2",
+                            "hand1_joint_link_3_2",
+                            "hand1_joint_link_4_2",
+                            "hand1_joint_link_5_2",
+                            "hand1_joint_link_1_3"],
                         stiffness=None,
                         damping=None,
 
@@ -163,16 +163,16 @@ ROOM_SCENE_CFG = SceneCfg(
                     "hand2": ImplicitActuatorCfg(
                         joint_names_expr=[
                             "hand2_joint_link_1_1",
-                            "hand2_joint_link_1_2",
-                            "hand2_joint_link_1_3",
                             "hand2_joint_link_2_1",
-                            "hand2_joint_link_2_2",
                             "hand2_joint_link_3_1",
-                            "hand2_joint_link_3_2",
                             "hand2_joint_link_4_1",
-                            "hand2_joint_link_4_2",
                             "hand2_joint_link_5_1",
-                            "hand2_joint_link_5_2"],
+                            "hand2_joint_link_1_2",
+                            "hand2_joint_link_2_2",
+                            "hand2_joint_link_3_2",
+                            "hand2_joint_link_4_2",
+                            "hand2_joint_link_5_2",
+                            "hand2_joint_link_1_3"],
                         stiffness=None,
                         damping=None,
 

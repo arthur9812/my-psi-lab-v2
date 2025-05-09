@@ -76,8 +76,7 @@ class VuerTpCfg():
     right_hand_retarget_cfg:RetargetingConfig = MISSING # type: ignore
 
     # 
-    hand_joint_num: int = MISSING # type: ignore
-
+    hand_retarget_indexs : list[int] = MISSING  # type: ignore
     hand_scale : list[float] = MISSING # type: ignore
 
 
