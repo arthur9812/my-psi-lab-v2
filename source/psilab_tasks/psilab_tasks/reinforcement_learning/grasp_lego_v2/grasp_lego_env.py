@@ -60,7 +60,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
             gpu_max_rigid_patch_count = 4096 * 4096,
-            # gpu_collision_stack_size=2100000000,
+            gpu_collision_stack_size = 2100000000,
             gpu_found_lost_pairs_capacity = 137401003
         ),
         render=RenderCfg(),
@@ -90,13 +90,13 @@ class GraspLegoEnv(RLEnv):
         self._visualizer = self.scene.visualizer
 
         # arm joint index
-        self._arm_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["arm"].joint_names]
+        self._arm_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["arm2"].joint_names]
 
         # hand joint index
-        self._hand_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["hand"].joint_names]
+        self._hand_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["hand2"].joint_names]
 
         # hand base link index
-        self._hand_base_link_index = self._robot.find_bodies(["hand1_link_base"])[0][0]
+        self._hand_base_link_index = self._robot.find_bodies(["hand2_link_base"])[0][0]
 
         # hand real joint index
         self._hand_real_joint_index = self._hand_joint_index[:6] # type: ignore
@@ -107,11 +107,11 @@ class GraspLegoEnv(RLEnv):
         self._finger_tip_index = [
             self._robot.find_bodies(link_name)[0][0] 
             for link_name in [
-                "hand1_link_1_4",
-                "hand1_link_2_3",
-                "hand1_link_3_3",
-                "hand1_link_4_3",
-                "hand1_link_5_3",
+                "hand2_link_1_4",
+                "hand2_link_2_3",
+                "hand2_link_3_3",
+                "hand2_link_4_3",
+                "hand2_link_5_3",
             ]]
 
         # joint limit
@@ -130,7 +130,7 @@ class GraspLegoEnv(RLEnv):
         # obervation state
         self._obs = torch.zeros((self.num_envs,self.cfg.observation_space),device=self.device, dtype=torch.float32) # type: ignore
 
-        # joint target position each step, order is arm, hand
+        # joint target position each step, order is arm2(right), hand2(right)
         self._joint_pos_target = self._robot.data.default_joint_pos[:,self._arm_joint_index+self._hand_real_joint_index].clone()
 
         # joint target position for last step, include real and fake joint
@@ -243,7 +243,7 @@ class GraspLegoEnv(RLEnv):
         )
      
         # 计算
-        self._joint_pos_target[:, self._arm_joint_num:] = self.cfg.act_moving_average * self._joint_pos_target[:,self._arm_joint_num:] + (1.0 - self.cfg.act_moving_average) * self._joint_pos_target_lasttime[:, self._arm_joint_num:]
+        self._joint_pos_target[:, self._arm_joint_num:] = self.cfg.act_moving_average * self._joint_pos_target[:, self._arm_joint_num:] + (1.0 - self.cfg.act_moving_average) * self._joint_pos_target_lasttime[:, self._arm_joint_num:]
 
         # 裁减
         self._joint_pos_target[:, self._arm_joint_num:] = tensor_clamp(
@@ -318,6 +318,7 @@ class GraspLegoEnv(RLEnv):
             self._joint_limit_lower[:,obs_joint_index],
             self._joint_limit_upper[:,obs_joint_index])
         
+
         # 13:25 => arm and hand joint velocity, 13 dim
         self._obs[:,13:26] = self.cfg.vel_obs_scale * joint_vel
 
