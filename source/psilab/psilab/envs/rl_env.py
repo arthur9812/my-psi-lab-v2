@@ -190,8 +190,9 @@ class RLEnv(gym.Env):
         #Feature: data definition and output folder change, Author:Feng Yunduo, Date: 2024-05-06, Start
         self._data : dict = None # type: ignore
         # change output folder with date and time
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.cfg.output_folder+=f"/{timestamp}" # type: ignore
+        if self.cfg.output_folder is not None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.cfg.output_folder+=f"/{timestamp}" # type: ignore
         #Feature: data definition and output folder change, Author:Feng Yunduo, Date: 2024-05-06, End
 
         # initialize data and constants

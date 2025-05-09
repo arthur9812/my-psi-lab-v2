@@ -370,6 +370,11 @@ def robot_base_cfg(data:dict)->RobotBaseCfg:
             for ik_name,ik_cfg in value.items():
                 ik_controllers[ik_name] = diff_ik_controller_cfg(ik_cfg)
             setattr(cfg,key,ik_controllers)
+        elif key == "eef_links":
+            eef_links = {}
+            for eef_link_name,eef_link in value.items():
+                eef_links[eef_link_name] = eef_link
+            setattr(cfg,key,eef_links)
         elif key == "cameras":
             cameras = {}
             for name,camera in value.items():
