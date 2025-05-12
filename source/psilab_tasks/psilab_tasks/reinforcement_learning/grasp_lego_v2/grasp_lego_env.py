@@ -27,7 +27,7 @@ from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.utils.wandb_utils import WandbLog
 from psilab.utils.timer_utils import Timer
 
-from psilab.utils.data_collect_utils import create_data_buffer,parse_data,save_data
+from psilab.utils.data_collect_utils import save_data,save_data_muilt_env
 
 
 @configclass
@@ -519,6 +519,23 @@ class GraspLegoEnv(RLEnv):
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         
+        # ############ Save Data ################
+        if self.cfg.enable_output and self._data is not None:
+            env_save_list = []
+            for i in range(self.scene.num_envs):
+                delta_z = self._lego.data.root_com_pos_w[i,2] - self._lego_init_pose[i,2]
+                if abs(delta_z - self.cfg.lift_height_target)<0.1:
+                    env_save_list.append(i)
+            # single env
+            if self.scene.num_envs == 1:
+                if len(env_save_list)==1:
+                    save_data(self._data,self.cfg)
+            # multi env
+            elif self.scene.num_envs >1:
+                save_data_muilt_env(self._data,self.cfg,env_save_list)
+            else:
+                raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
+        
         # why do this?
         if env_ids is None or len(env_ids) == self.num_envs:
             env_ids = self._robot._ALL_INDICES
@@ -583,7 +600,6 @@ class GraspLegoEnv(RLEnv):
         
         # update episodes
         self._episodes += 1
-
 
 @torch.jit.script
 def torch_rand_float(lower, upper, shape, device):

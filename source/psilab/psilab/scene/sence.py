@@ -437,51 +437,7 @@ class Scene(InteractiveScene):
                 asset_paths = sim_utils.find_matching_prim_paths(asset_cfg.prim_path)
                 self._global_prim_paths += asset_paths
 
-        # ********* Add robot entities from the config ********
-        # # parse the entire scene config and resolve regex
-        # for asset_name, asset_cfg in self.cfg.__dict__.items():
-        #     # skip keywords
-        #     # note: easier than writing a list of keywords: [num_envs, env_spacing, lazy_sensor_update]
-        #     if asset_name in SceneCfg.__dataclass_fields__ or asset_cfg is None:
-        #         continue
-        #     # resolve regex
-        #     if hasattr(asset_cfg, "prim_path"):
-        #         asset_cfg.prim_path = asset_cfg.prim_path.format(ENV_REGEX_NS=self.env_regex_ns)
-        #     # # create asset
-        #     if isinstance(asset_cfg, RobotCfg):
-        #         # terrains are special entities since they define environment origins
-        #         self._robots[asset_name] = asset_cfg.class_type(asset_cfg)
-        #         # ********* Add Camera entities from the robot config ********
-        #         for camera_name, camera_cfg in asset_cfg.cameras.items():
-        #                 self._robots[asset_name].cameras[camera_name]=Camera(camera_cfg)
         
-        # # ********* Add entities from the config list ********
-        # for cfg_dict_name,cfg_dict in self.cfg.__dict__.items():
-        #     if isinstance(cfg_dict,dict):
-        #         for asset_name, asset_cfg in cfg_dict.items():
-        #             if isinstance(asset_cfg,RigidObjectCfg):
-        #                 self._rigid_objects[asset_name] = asset_cfg.class_type(asset_cfg)
-        #             elif isinstance(asset_cfg, DeformableObjectCfg):
-        #                 self._deformable_objects[asset_name] = asset_cfg.class_type(asset_cfg)
-        #             elif isinstance(asset_cfg, AssetBaseCfg):
-        #                 # manually spawn asset
-        #                 if asset_cfg.spawn is not None:
-        #                     asset_cfg.spawn.func(
-        #                         asset_cfg.prim_path,
-        #                         asset_cfg.spawn,
-        #                         translation=asset_cfg.init_state.pos,
-        #                         orientation=asset_cfg.init_state.rot,
-        #                     )
-        #                 # store xform prim view corresponding to this asset
-        #                 # all prims in the scene are Xform prims (i.e. have a transform component)
-        #                 self._extras[asset_name] = XFormPrimView(asset_cfg.prim_path, reset_xform_properties=False)
-        #             elif isinstance(asset_cfg, SensorBaseCfg):
-        #                 if isinstance(asset_cfg, CameraCfg):
-        #                     self._cameras[asset_name] = asset_cfg.class_type(asset_cfg)
-        #                 elif isinstance(asset_cfg,ContactSensorCfg):
-        #                     self._sensors[asset_name] = asset_cfg.class_type(asset_cfg)
-        #             else:
-        #                 raise ValueError(f"Unknown asset config type for {asset_name}: {asset_cfg}")
 
     def _apply_random(self):
         

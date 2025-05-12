@@ -192,22 +192,22 @@ EMPTY_SCENE_CFG = SceneCfg(
                    "base_camera": TiledCameraCfg(
                         prim_path="/World/envs/env_[0-9]+/Robot/base_camera_rgb/base_camera_rgb",
                         data_types=["rgb"],
-                        width=224,
-                        height=224,
+                        width=640,
+                        height=480,
                         spawn=None,
                     ),
-                    "arm1_camera": TiledCameraCfg(
-                        prim_path="/World/envs/env_[0-9]+/Robot/arm1_camera_rgb/arm1_camera_rgb",
-                        data_types=["rgb"],
-                        width=224,
-                        height=224,
-                        spawn=None,
-                    ),
+                    # "arm1_camera": TiledCameraCfg(
+                    #     prim_path="/World/envs/env_[0-9]+/Robot/arm1_camera_rgb/arm1_camera_rgb",
+                    #     data_types=["rgb"],
+                    #     width=224,
+                    #     height=224,
+                    #     spawn=None,
+                    # ),
                     "arm2_camera": TiledCameraCfg(
                         prim_path="/World/envs/env_[0-9]+/Robot/arm2_camera_rgb/arm2_camera_rgb",
                         data_types=["rgb"],
-                        width=224,
-                        height=224,
+                        width=640,
+                        height=480,
                         spawn=None,
                     ),
                 }

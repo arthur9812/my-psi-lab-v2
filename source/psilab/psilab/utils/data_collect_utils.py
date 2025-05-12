@@ -65,6 +65,11 @@ def create_data_buffer(env, cfg) -> dict :
             # multi-type
             for data_type in camera.cfg.data_types:
                 data["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
+        # extra info: tiled cameras
+        for camera_name,camera in robot.tiled_cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                data["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
     # add rigid object
     data["rigid_objects"] = {}
     for object_name in env.scene.rigid_objects.keys():
@@ -85,6 +90,86 @@ def create_data_buffer(env, cfg) -> dict :
         for data_type in camera.cfg.data_types:
             data["cameras"][camera_name+ "." + data_type] = []
     #
+    return data
+ 
+def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
+    #
+    data = {}
+    for i in range(nums_env):
+        data[f"env_{i}"] = {}
+    
+    # add time stamps
+    data["timestamps"] = []
+    for i in range(nums_env):
+        # add robots
+        data[f"env_{i}"]["robots"] = {}
+        for robot_name,robot in env.scene.robots.items():
+            data[f"env_{i}"]["robots"][robot_name] = {}
+            # actions
+            data[f"env_{i}"]["robots"][robot_name]["action"] = []
+            # add actuators
+            for actuator_name in robot.actuators.keys():
+                data[f"env_{i}"]["robots"][robot_name][actuator_name+"_pos"] = []
+                data[f"env_{i}"]["robots"][robot_name][actuator_name+"_vel"] = []
+            # add eef state according to ik controllers
+            for eef_name in robot.eef_links.keys():
+                data[f"env_{i}"]["robots"][robot_name][eef_name+"_eef_pose"] = []
+                data[f"env_{i}"]["robots"][robot_name][eef_name+"_vel"] = []
+            # add cameras 
+            for camera_name,camera in robot.cameras.items():
+                # multi-type
+                for data_type in camera.cfg.data_types:
+                    data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type] = []
+            # add tiled cameras 
+            for camera_name,camera in robot.tiled_cameras.items():
+                # multi-type
+                for data_type in camera.cfg.data_types:
+                    data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type] = []
+            # add contact sensors
+            for contact_name in robot.cameras.keys():
+                data[f"env_{i}"]["robots"][robot_name][contact_name] = []
+            # extra info
+            data[f"env_{i}"]["robots"][robot_name]["extra"] = {
+                "joint_name" : {},
+                "joint_index" : {},
+                "cameras" : [],
+            }
+            # extra info: all joint
+            data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_name"]["all"] = robot.joint_names
+            data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_index"]["all"] = robot.find_joints(robot.joint_names)[0]
+            for actuator_name,actuator in robot.actuators.items():
+                data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_name"][actuator_name] = actuator.joint_names
+                data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_index"][actuator_name] = actuator.joint_indices
+            # extra info: cameras
+            for camera_name,camera in robot.cameras.items():
+                # multi-type
+                for data_type in camera.cfg.data_types:
+                    data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
+            # # extra info: tiled cameras
+            # for camera_name,camera in robot.tiled_cameras.items():
+            #     # multi-type
+            #     for data_type in camera.cfg.data_types:
+            #         data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"].append(camera_name+ "." + data_type)
+        # add rigid object
+        data[f"env_{i}"]["rigid_objects"] = {}
+        for object_name in env.scene.rigid_objects.keys():
+            data[f"env_{i}"]["rigid_objects"][object_name]=[]
+        # add deformable object
+        data[f"env_{i}"]["deformable_objects"] = {}
+        for object_name in env.scene.deformable_objects.keys():
+            data[f"env_{i}"]["deformable_objects"][object_name]=[]
+        # add cameras
+        data[f"env_{i}"]["cameras"] = {}
+        for camera_name,camera in env.scene.cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                data[f"env_{i}"]["cameras"][camera_name+ "." + data_type] = []
+        # add tiled cameras
+        for camera_name,camera in env.scene.tiled_cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                data[f"env_{i}"]["cameras"][camera_name+ "." + data_type] = []
+    
     return data
 
 def parse_data(data: dict, env, cfg) -> dict :
@@ -133,91 +218,13 @@ def parse_data(data: dict, env, cfg) -> dict :
         for data_type in camera.cfg.data_types:
             image = camera.data.output[data_type].clone()
             data["cameras"][camera_name+ "." + data_type].append(image[0,:,:,:])
-
+    # add tiled cameras
+    for camera_name,camera in env.scene.tiled_cameras.items():
+        # multi-type
+        for data_type in camera.cfg.data_types:
+            image = camera.data.output[data_type].clone()
+            data["cameras"][camera_name+ "." + data_type].append(image[0,:,:,:])
     #
-    return data
-
-def save_data(data: dict, cfg):
-    # 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"/{timestamp}_data.hdf5"
-    # create folder if not exist
-    if not os.path.exists(cfg.output_folder):
-        os.makedirs(cfg.output_folder)
-    h5_file = h5py.File(cfg.output_folder+filename, 'w') # type: ignore
-    # 
-    aa = dict_to_cpu(data)
-    dict_to_h5(aa,h5_file,"/")
-    h5_file.close()
-    # pass
-    cfg_dict = class_to_dict(cfg.scene)
-    filename = f"/{timestamp}_scene_config.json"
-    json_file = open(cfg.output_folder+filename,'w') # type: ignore
-    json.dump(cfg_dict,json_file,indent=4) 
-    
-def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
-    #
-    data = {}
-    for i in range(nums_env):
-        data[f"env_{i}"] = {}
-    
-    # add time stamps
-    data["timestamps"] = []
-    for i in range(nums_env):
-        # add robots
-        data[f"env_{i}"]["robots"] = {}
-        for robot_name,robot in env.scene.robots.items():
-            data[f"env_{i}"]["robots"][robot_name] = {}
-            # actions
-            data[f"env_{i}"]["robots"][robot_name]["action"] = []
-            # add actuators
-            for actuator_name in robot.actuators.keys():
-                data[f"env_{i}"]["robots"][robot_name][actuator_name+"_pos"] = []
-                data[f"env_{i}"]["robots"][robot_name][actuator_name+"_vel"] = []
-            # add eef state according to ik controllers
-            for eef_name in robot.eef_links.keys():
-                data[f"env_{i}"]["robots"][robot_name][eef_name+"_eef_pose"] = []
-                data[f"env_{i}"]["robots"][robot_name][eef_name+"_vel"] = []
-            # add cameras 
-            for camera_name,camera in robot.cameras.items():
-                # multi-type
-                for data_type in camera.cfg.data_types:
-                    data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type] = []
-            # add contact sensors
-            for contact_name in robot.cameras.keys():
-                data[f"env_{i}"]["robots"][robot_name][contact_name] = []
-            # extra info
-            data[f"env_{i}"]["robots"][robot_name]["extra"] = {
-                "joint_name" : {},
-                "joint_index" : {},
-                "cameras" : [],
-            }
-            # extra info: all joint
-            data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_name"]["all"] = robot.joint_names
-            data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_index"]["all"] = robot.find_joints(robot.joint_names)[0]
-            for actuator_name,actuator in robot.actuators.items():
-                data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_name"][actuator_name] = actuator.joint_names
-                data[f"env_{i}"]["robots"][robot_name]["extra"]["joint_index"][actuator_name] = actuator.joint_indices
-            # extra info: cameras
-            for camera_name,camera in robot.cameras.items():
-                # multi-type
-                for data_type in camera.cfg.data_types:
-                    data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
-        # add rigid object
-        data[f"env_{i}"]["rigid_objects"] = {}
-        for object_name in env.scene.rigid_objects.keys():
-            data[f"env_{i}"]["rigid_objects"][object_name]=[]
-        # add deformable object
-        data[f"env_{i}"]["deformable_objects"] = {}
-        for object_name in env.scene.deformable_objects.keys():
-            data[f"env_{i}"]["deformable_objects"][object_name]=[]
-        # add cameras
-        data[f"env_{i}"]["cameras"] = {}
-        for camera_name,camera in env.scene.cameras.items():
-            # multi-type
-            for data_type in camera.cfg.data_types:
-                data[f"env_{i}"]["cameras"][camera_name+ "." + data_type] = []
-        #
     return data
 
 def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
@@ -236,15 +243,25 @@ def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
             # add eef state according to ik controllers
             for eef_name,eef_index in robot.eef_links.items():
                 # transform eef position from world coordinate to robot coordinate
-                eef_state = robot.data.body_link_state_w[i,eef_index,:7].cpu()
+                eef_state = robot.data.body_link_state_w[i,eef_index,:7]
                 eef_state[:3] -= robot.data.root_state_w[i,:3]
                 data[f"env_{i}"]["robots"][robot_name][eef_name+"_eef_pose"].append(eef_state.cpu())
             # add cameras
             for camera_name,camera in robot.cameras.items():
                 # multi-type
                 for data_type in camera.cfg.data_types:
-                    image = camera.data.output[data_type].clone()
+                    image = camera.data.output[data_type]
                     data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type].append(image[i,:,:,:].cpu())
+
+
+            # add tiled cameras
+            for camera_name,camera in robot.tiled_cameras.items():
+                # multi-type
+                for data_type in camera.cfg.data_types:
+                    image = camera.data.output[data_type]
+                    data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type].append(image[i,:,:,:].cpu())
+
+
             # # add contact sensors
             # for contact_name,contact in robot.cameras.items():
             #     self._data["robots"][robot_name][contact_name].append()
@@ -259,15 +276,39 @@ def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
         for camera_name,camera in env.scene.cameras.items():
             # multi-type
             for data_type in camera.cfg.data_types:
-                image = camera.data.output[data_type].clone()
+                image = camera.data.output[data_type]
                 data[f"env_{i}"]["cameras"][camera_name+ "." + data_type].append(image[i,:,:,:].cpu())
-
+        # add tiled cameras
+        for camera_name,camera in env.scene.tiled_cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                image = camera.data.output[data_type]
+                data[f"env_{i}"]["cameras"][camera_name+ "." + data_type].append(image[i,:,:,:].cpu())
+    #
     #
     return data
 
+def save_data(data: dict, cfg):
+    # 
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"/{timestamp}_data.hdf5"
+    # create folder if not exist
+    if not os.path.exists(cfg.output_folder):
+        os.makedirs(cfg.output_folder)
+    h5_file = h5py.File(cfg.output_folder+filename, 'w') # type: ignore
+    # 
+    data_cpu = dict_to_cpu(data)
+    dict_to_h5(data_cpu,h5_file,"/")
+    h5_file.close()
+    # pass
+    cfg_dict = class_to_dict(cfg.scene)
+    filename = f"/{timestamp}_scene_config.json"
+    json_file = open(cfg.output_folder+filename,'w') # type: ignore
+    json.dump(cfg_dict,json_file,indent=4) 
+
 def save_data_muilt_env(data: dict, cfg, nums_env:list):
     
-    #
+    # Only save data in env of which the index is in nums_env list
     key_pop = []
     for key in list(data.keys()):
         if len(key.split("_"))>1:
@@ -287,8 +328,8 @@ def save_data_muilt_env(data: dict, cfg, nums_env:list):
         os.makedirs(cfg.output_folder)
     h5_file = h5py.File(cfg.output_folder+filename, 'w') # type: ignore
     # 
-    aa = dict_to_cpu(data)
-    dict_to_h5(aa,h5_file,"/")
+    data_cpu = dict_to_cpu(data)
+    dict_to_h5(data_cpu,h5_file,"/")
     h5_file.close()
     # pass
     cfg_dict = class_to_dict(cfg.scene)

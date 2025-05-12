@@ -315,20 +315,20 @@ class RLEnv(gym.Env):
             while SimulationManager.assets_loading():
                 self.sim.render()
 
-        #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, Start
-        # clear data
-        if self.cfg.enable_output:
-            if self.scene.num_envs == 1:
-            # single env
-                self._data = create_data_buffer(self,self.cfg)
-            elif self.scene.num_envs >1:
-                # multi env
-                self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
-            else:
-                raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
-            # clear cuda cache
-            torch.cuda.empty_cache()
-        #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, End
+        # #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, Start
+        # # clear data
+        # if self.cfg.enable_output:
+        #     if self.scene.num_envs == 1:
+        #     # single env
+        #         self._data = create_data_buffer(self,self.cfg)
+        #     elif self.scene.num_envs >1:
+        #         # multi env
+        #         self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+        #     else:
+        #         raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
+        #     # clear cuda cache
+        #     torch.cuda.empty_cache()
+        # #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, End
 
 
         # return observations
@@ -411,14 +411,18 @@ class RLEnv(gym.Env):
             # (scene_update_finish - sim_step_finish)*1000,
             #     )
             # )
+            #Feature: parse data dict, Author:Feng Yunduo, Date: 2024-05-06, Start
             # output data
             if self.cfg.enable_output and self._sim_step_counter % self.cfg.sample_step == 0:
-                # single
-                # parse_data(self._data,self,self.cfg)
-                # multi
-                parse_data_muilt_env(self._data,self,self.cfg,self.scene.num_envs)
-
-
+                # single env
+                if self.scene.num_envs == 1:
+                    self._data = parse_data(self._data,self,self.cfg)
+                # multi env
+                elif self.scene.num_envs >1:
+                    self._data = parse_data_muilt_env(self._data,self,self.cfg,self.scene.num_envs)
+                else:
+                    raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
+            #Feature: parse data dict, Author:Feng Yunduo, Date: 2024-05-06, End
         # apply_action_end = time.time()
 
         # post-step:
@@ -694,6 +698,21 @@ class RLEnv(gym.Env):
 
         # reset the episode length buffer
         self.episode_length_buf[env_ids] = 0
+
+        #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, Start
+        # clear data
+        if self.cfg.enable_output:
+            if self.scene.num_envs == 1:
+            # single env
+                self._data = create_data_buffer(self,self.cfg)
+            elif self.scene.num_envs >1:
+                # multi env
+                self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+            else:
+                raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
+            # clear cuda cache
+            torch.cuda.empty_cache()
+        #Feature: iniatillize data dict, Author:Feng Yunduo, Date: 2024-05-06, End
 
     """
     Implementation-specific functions.

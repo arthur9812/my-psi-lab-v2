@@ -75,10 +75,10 @@ class TPEnv(RLEnv):
         self.scene.reset()
         # 
         self._vuer.reset()
-        # clear data
-        self._data = create_data_buffer(self,self.cfg)
-        # clear cuda cache
-        torch.cuda.empty_cache()
+        # # clear data
+        # self._data = create_data_buffer(self,self.cfg)
+        # # clear cuda cache
+        # torch.cuda.empty_cache()
         # 
         return super().reset()
 
