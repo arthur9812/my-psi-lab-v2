@@ -89,10 +89,10 @@ class GraspRigidEnvCfg(ILEnvCfg):
         render_interval=decimation,
         physx = PhysxCfg(
             solver_type = 1, # 0: pgs, 1: tgs
-            max_position_iteration_count = 16,
+            max_position_iteration_count = 32,
             max_velocity_iteration_count = 4,
             bounce_threshold_velocity = 0.002,
-            # enable_ccd=False,
+            enable_ccd=True,
             gpu_found_lost_pairs_capacity = 137401003
         ),
         render=RenderCfg(),
@@ -134,7 +134,7 @@ class GraspRigidEnv(ILEnv):
         
         # For test
         # import matplotlib.pyplot as plt
-        # image =self._robot.cameras["base_camera"].data.output["rgb"][0,:,:,:]
+        # image =self._robot.tiled_cameras["arm2_camera"].data.output["rgb"][0,:,:,:]
         # plt.imshow(image.cpu())
         # plt.pause(0.001)
 
@@ -180,69 +180,40 @@ class GraspRigidEnv(ILEnv):
         
     def sim_step(self):
 
-        # 
-        # real_joint_index = self._robot.actuators["hand2"].joint_indices[:6] # type: ignore
-        # virtual_joint_index = self._robot.actuators["hand2"].joint_indices[6:] # type: ignore
-
-        # real_joint_pos_target_norm = norm(
-        #     self._action[7:],
-        #     self._joint_limit_lower[:,real_joint_index],
-        #     self._joint_limit_upper[:,real_joint_index]
-        # )
-
-        # # 根据归一化结果和映射，修改联动关节
-        # action_virtual = real_joint_pos_target_norm[:,1:6] * (self._joint_limit_upper[:,virtual_joint_index] - self._joint_limit_lower[:,virtual_joint_index]) + self._joint_limit_lower[:,virtual_joint_index]
-
-
         # set target
-        # aa = self._action.unsqueeze(0)
-        # pass
-        # action = torch.cat((,action_virtual),1)
-        # aa = self._robot.actuators["arm2"].joint_indices
-        # aaa = torch.tensor([ 0.5008, -0.9280,  1.7296, -2.4516,  0.3818,  0.6818, -0.4939], device='cuda:0')
-
-        # aaa = torch.tensor([ 0.0, 0.0, 0.0,  0.0,  0.0, 0.0, 0.0], device='cuda:0')
-        # self._robot.set_joint_position_target(self._action[:7],self._robot.actuators["arm2"].joint_indices) # type: ignore
-        
-
         self._robot.set_joint_position_target(self._action[:7],self._robot.actuators["arm2"].joint_indices) # type: ignore
-        self._robot.set_joint_position_target(self._action[7:],self._robot.actuators["hand2"].joint_indices) # type: ignore
+        self._robot.set_joint_position_target(self._action[7:],self._robot.actuators["hand2"].joint_indices[:6]) # type: ignore
             
-        
-        # self._robot.set_joint_position_target(
-        #     torch.cat((self._action[7:].unsqueeze(0),action_virtual),dim=1),
-        #     self._robot.actuators["hand2"].joint_indices) # type: ignore
-
         super().sim_step()
         
         # 
-        contact_sensors = {
-            "left_hand":self.scene.sensors["left_hand"],
-            "right_hand":self.scene.sensors["right_hand"],
-        }
+        # contact_sensors = {
+        #     "left_hand":self.scene.sensors["left_hand"],
+        #     "right_hand":self.scene.sensors["right_hand"],
+        # }
 
         # 判断任务成功或失败
         # 失败判断
-        if eval_fail(
-            self.scene.robots["robot"],
-            self.scene.rigid_objects["bottle"],
-            contact_sensors, # type: ignore
-            ): 
-            # print("Failed")
-            self.reset()
+        # if eval_fail(
+        #     self.scene.robots["robot"],
+        #     self.scene.rigid_objects["bottle"],
+        #     contact_sensors, # type: ignore
+        #     ): 
+        #     # print("Failed")
+        #     self.reset()
         
-        # 成功判断
-        if eval_success(
-            self.scene.robots["robot"],
-            self.scene.rigid_objects["bottle"],
-            contact_sensors, # type: ignore
-            0.3): 
-            # print("Success")
-            if self.cfg.enable_output:
-                save_data(self._data,self.cfg)
-            # 
-            self._episode_success += 1
-            self.reset()
+        # # 成功判断
+        # if eval_success(
+        #     self.scene.robots["robot"],
+        #     self.scene.rigid_objects["bottle"],
+        #     contact_sensors, # type: ignore
+        #     0.3): 
+        #     # print("Success")
+        #     if self.cfg.enable_output:
+        #         save_data(self._data,self.cfg)
+        #     # 
+        #     self._episode_success += 1
+        #     self.reset()
 
         self._sim_step_counter += 1
        

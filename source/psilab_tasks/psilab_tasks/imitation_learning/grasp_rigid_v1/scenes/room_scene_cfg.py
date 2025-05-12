@@ -55,7 +55,7 @@ ROOM_SCENE_CFG = SceneCfg(
             "robot" : RobotBaseCfg(
                 prim_path = "/World/Robot",
                 spawn = sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_3.0/PsiRobot_DC_01_Tuned.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
                     activate_contact_sensors = True,
 
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -76,13 +76,20 @@ ROOM_SCENE_CFG = SceneCfg(
                         "arm1_joint_link5": 0.30,
                         "arm1_joint_link6": -1.03,
                         "arm1_joint_link7": 1.35,
-                        "arm2_joint_link1": -0.7081,
-                        "arm2_joint_link2": -2.260,
-                        "arm2_joint_link3": 1.1912,
-                        "arm2_joint_link4": -1.9471,
-                        "arm2_joint_link5": -0.8578,
-                        "arm2_joint_link6": -0.1248,
-                        "arm2_joint_link7": -1.4305,
+                        "arm2_joint_link1": 0.24,
+                        "arm2_joint_link2": -0.64,
+                        "arm2_joint_link3": 1.52,
+                        "arm2_joint_link4": -0.81,
+                        "arm2_joint_link5": -0.30,
+                        "arm2_joint_link6": -1.03,
+                        "arm2_joint_link7": -0.36,
+                        # "arm2_joint_link1": -0.7081,
+                        # "arm2_joint_link2": -2.260,
+                        # "arm2_joint_link3": 1.1912,
+                        # "arm2_joint_link4": -1.9471,
+                        # "arm2_joint_link5": -0.8578,
+                        # "arm2_joint_link6": -0.1248,
+                        # "arm2_joint_link7": -1.4305,
                         "hand1_joint_link_1_1":0.0,
                         "hand1_joint_link_1_2":0.63,
                         "hand1_joint_link_1_3":0.03,
@@ -138,17 +145,17 @@ ROOM_SCENE_CFG = SceneCfg(
                     ),
                     "hand1": ImplicitActuatorCfg(
                         joint_names_expr=[
-                            "hand1_joint_link_1_1",
-                            "hand1_joint_link_1_2",
-                            "hand1_joint_link_1_3",
-                            "hand1_joint_link_2_1",
-                            "hand1_joint_link_2_2",
-                            "hand1_joint_link_3_1",
-                            "hand1_joint_link_3_2",
-                            "hand1_joint_link_4_1",
-                            "hand1_joint_link_4_2",
-                            "hand1_joint_link_5_1",
-                            "hand1_joint_link_5_2"],
+                            "hand2_joint_link_1_1",
+                            "hand2_joint_link_2_1",
+                            "hand2_joint_link_3_1",
+                            "hand2_joint_link_4_1",
+                            "hand2_joint_link_5_1",
+                            "hand2_joint_link_1_2",
+                            "hand2_joint_link_2_2",
+                            "hand2_joint_link_3_2",
+                            "hand2_joint_link_4_2",
+                            "hand2_joint_link_5_2",
+                            "hand2_joint_link_1_3"],
                         stiffness=None,
                         damping=None,
 
@@ -226,8 +233,8 @@ ROOM_SCENE_CFG = SceneCfg(
                     prim_path="/World/Table", 
                     spawn=sim_utils.UsdFileCfg(
                         usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/table/table_1157.usd",
-                        # scale=(1.0, 1.0, 1.8),
-                        scale=(1.0, 1.0, 2.0),
+                        scale=(1.0, 1.0, 1.8),
+                        # scale=(1.0, 1.0, 2.0),
                         visual_material=None,
                         rigid_props=RigidBodyPropertiesCfg(
                             kinematic_enabled = True,
@@ -242,7 +249,7 @@ ROOM_SCENE_CFG = SceneCfg(
             "bottle" : RigidObjectCfg(
                 prim_path="/World/Bottle",
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/drink-B36-V1/B36.usd",           
+                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/drink-B36-V1/B36.usd",
                     scale=(0.0006, 0.0006, 0.0006),
                     visual_material=None,
                     rigid_props=RigidBodyPropertiesCfg(
@@ -250,7 +257,7 @@ ROOM_SCENE_CFG = SceneCfg(
                         )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.0,0.0,0.9),
+                    pos=(0.0,0.0,0.85),
                     rot= (0.707, 0.707, 0.0, 0.0)
 
                 )
@@ -332,10 +339,11 @@ ROOM_SCENE_CFG = SceneCfg(
                     )
                 )
             },
+            #
+            task_cfg = None
 
-
-        )
-
+        ),
+        
     )
 
 

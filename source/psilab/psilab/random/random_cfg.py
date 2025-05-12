@@ -13,6 +13,7 @@ from isaaclab.utils.configclass import configclass
 from psilab.random.rigid_random_cfg import RigidRandomCfg
 from psilab.random.light_random_cfg import LightRandomCfg
 from psilab.random.material_random_cfg import MaterialRandomCfg
+from psilab.random.task_random_cfg import TaskRandomCfg
 
 @configclass
 class RandomCfg():
@@ -30,4 +31,5 @@ class RandomCfg():
     # deformable_objects_cfg : dict[str, DeformableObjectCfg] = MISSING # type: ignore
     #"""The deformable objects random configuration."""
 
+    task_cfg : None | TaskRandomCfg = None
 

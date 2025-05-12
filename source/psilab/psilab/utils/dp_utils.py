@@ -78,7 +78,8 @@ def process_image(img:torch.Tensor):
     img = img[...,:3].float()  
     # 调整通道顺序 [H, W, C] -> [C, H, W]
     # img = img.permute(0, 3, 1, 2)  
-    img = img.permute(2, 1, 0)  # 调整通道顺序
+    # img = img.permute(2, 1, 0)  # 调整通道顺序
+    img = img.permute(2, 0, 1)  # 调整通道顺序
 
     # 归一化到[0,1]并调整尺寸
     img = F.interpolate(

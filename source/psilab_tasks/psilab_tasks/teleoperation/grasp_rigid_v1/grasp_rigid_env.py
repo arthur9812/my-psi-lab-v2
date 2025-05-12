@@ -95,6 +95,9 @@ class GraspRigidEnvCfg(TPEnvCfg):
         render=RenderCfg(),
     )
 
+    # 
+    sample_step = 1
+
     # scene config
     scene = MISSING # type: ignore
 
