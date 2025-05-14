@@ -74,7 +74,7 @@ class GraspRigidEnvCfg(ILEnvCfg):
     state_space = 130
 
     # 
-    decimation = 1
+    decimation = 4
     sample_step = 1
 
     # viewer config
@@ -129,6 +129,9 @@ class GraspRigidEnv(ILEnv):
         self.base_policy = load_diffusion_policy_model(
             self.cfg.policy
         ).to(self.device)
+
+        # variables used to store contact flag
+        self._has_contacted = False
         
     def step(self,actions):
         
@@ -186,41 +189,42 @@ class GraspRigidEnv(ILEnv):
             
         super().sim_step()
         
-        # 
-        # contact_sensors = {
-        #     "left_hand":self.scene.sensors["left_hand"],
-        #     "right_hand":self.scene.sensors["right_hand"],
-        # }
+        
+        contact_sensors = {
+            "left_hand":self.scene.sensors["left_hand"],
+            "right_hand":self.scene.sensors["right_hand"],
+        }
 
         # 判断任务成功或失败
         # 失败判断
-        # if eval_fail(
-        #     self.scene.robots["robot"],
-        #     self.scene.rigid_objects["bottle"],
-        #     contact_sensors, # type: ignore
-        #     ): 
+        # failed,self._has_contacted = eval_fail(self.scene.robots["robot"],self.scene.rigid_objects["bottle"],contact_sensors, self._has_contacted,)# type: ignore
+        # #
+        # if failed: 
+        #     print(f"第{self._episode + 1}轮失败.")
         #     # print("Failed")
         #     self.reset()
         
-        # # 成功判断
-        # if eval_success(
-        #     self.scene.robots["robot"],
-        #     self.scene.rigid_objects["bottle"],
-        #     contact_sensors, # type: ignore
-        #     0.3): 
-        #     # print("Success")
-        #     if self.cfg.enable_output:
-        #         save_data(self._data,self.cfg)
-        #     # 
-        #     self._episode_success += 1
-        #     self.reset()
+        # 成功判断
+        if eval_success(
+            self.scene.robots["robot"],
+            self.scene.rigid_objects["bottle"],
+            contact_sensors, # type: ignore
+            0.3): 
+            print(f"第{self._episode + 1}轮成功.")
+            if self.cfg.enable_output:
+                save_data(self._data,self.cfg)
+            # 
+            self._episode_success += 1
+            self.reset()
 
         self._sim_step_counter += 1
        
     def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
         # 
         self._episode += 1
-        
+        # print(f"第{self._episode}轮完成.")
+        #
+        self._has_contacted = False
         #
         return super().reset()
 

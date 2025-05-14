@@ -40,7 +40,7 @@ def eval_success(robot: RobotBase, target: RigidObject, contact_sensors: dict[st
     return False
 
 
-def eval_fail(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,ContactSensor]) -> bool:
+def eval_fail(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,ContactSensor],has_contacted:bool) -> tuple[bool,bool]:
     """The evaluate of whether the grasp is failed. """
 
 
@@ -50,7 +50,7 @@ def eval_fail(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,C
     # 获取目标速度
     velocity_z = torch.round(target.data.root_link_state_w[0,9], decimals = 2)
     # 计算接触力数量
-    contact_force_num =0
+    contact_force_num = 0
     for sensor_name,contact_sensor in contact_sensors.items():
         net_forces_w = contact_sensor.data.net_forces_w[0,:,:] # type: ignore
         for index in range(net_forces_w.size()[0]):
@@ -61,7 +61,10 @@ def eval_fail(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,C
     # print(f"Velocity on Z-Axis: {velocity_z}")
     # print(f"Contact Force Num: {contact_force_num}")
 
-    if velocity_z <= -0.2 and contact_force_num==0:
-        return True
+    contacted = True if contact_force_num>0 else False
+    has_contacted = has_contacted or contacted
+
+    if has_contacted and velocity_z <= -0.2 and contact_force_num==0:
+        return True,has_contacted
     
-    return False
+    return False,has_contacted

@@ -47,7 +47,7 @@ class GraspLegoEnvCfg(RLEnvCfg):
     vel_obs_scale = 0.2
     act_moving_average = 0.8
     env_id_print_data = 0 # index of env to print status
-    lift_height_target = 0.3 # lego lift height target
+    lift_height_target = 0.3 # target lift height target
 
     # simulation config
     sim: SimulationCfg = SimulationCfg(
@@ -61,7 +61,9 @@ class GraspLegoEnvCfg(RLEnvCfg):
             enable_ccd=True,
             gpu_max_rigid_patch_count = 4096 * 4096,
             gpu_collision_stack_size = 2100000000,
-            gpu_found_lost_pairs_capacity = 137401003
+            gpu_found_lost_pairs_capacity = 137401003,
+            gpu_total_aggregate_pairs_capacity=5196400
+
         ),
         render=RenderCfg(),
 
@@ -86,7 +88,7 @@ class GraspLegoEnv(RLEnv):
 
         # get instances in scene
         self._robot = self.scene.robots["robot"]
-        self._lego = self.scene.rigid_objects["lego"]
+        self._target = self.scene.rigid_objects["target"]
         self._visualizer = self.scene.visualizer
 
         # arm joint index
@@ -118,8 +120,8 @@ class GraspLegoEnv(RLEnv):
         self._joint_limit_lower = self._robot.data.joint_limits[:,:,0].clone()
         self._joint_limit_upper = self._robot.data.joint_limits[:,:,1].clone()
 
-        # lego init pose, position and orientation(w,x,y,z)
-        self._lego_init_pose = torch.zeros((self.num_envs,7),device=self.device)
+        # target init pose, position and orientation(w,x,y,z)
+        self._target_init_pose = torch.zeros((self.num_envs,7),device=self.device)
 
         # unit tensors which used to compute
         self._z_unit_tensor = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
@@ -148,7 +150,7 @@ class GraspLegoEnv(RLEnv):
         
         self.extras = {
             'dist_reward': torch.zeros((self.num_envs),device=self.device), 
-            'lego_up_reward': torch.zeros((self.num_envs),device=self.device), 
+            'target_up_reward': torch.zeros((self.num_envs),device=self.device), 
             "pose_reward": torch.zeros((self.num_envs),device=self.device),  
             "angle_reward": torch.zeros((self.num_envs),device=self.device),  
             'action_penalty': torch.zeros((self.num_envs),device=self.device), 
@@ -158,8 +160,8 @@ class GraspLegoEnv(RLEnv):
         # initialize wandb
         if self.cfg.enable_wandb: 
             self._wandb = WandbLog()
-            project = "GraspLegoTest"
-            name = "PsiLab_v2.0_RL_PPO" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
+            project = "GraspLego-V2"
+            name = "PSI-DC-01" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
             self._wandb.init_wandb(project,name)
 
         # initialize Timer
@@ -187,8 +189,8 @@ class GraspLegoEnv(RLEnv):
             pinky_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[4],:]
             grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
 
-            # lego state
-            lego_state = self._lego.data.root_link_state_w[:,:]
+            # target state
+            target_state = self._target.data.root_link_state_w[:,:]
 
             # refresh visualize and marker
             marker_pos = torch.cat((
@@ -197,7 +199,7 @@ class GraspLegoEnv(RLEnv):
                 middle_tip_link_state[0:1,:3],
                 ring_tip_link_state[0:1,:3],
                 pinky_tip_link_state[0:1,:3],
-                lego_state[0:1,:3],
+                target_state[0:1,:3],
                 grasp_fingers_pos[0:1,:3]
                 ),0)
             
@@ -207,7 +209,7 @@ class GraspLegoEnv(RLEnv):
                 middle_tip_link_state[0:1,3:7],
                 ring_tip_link_state[0:1,3:7],
                 pinky_tip_link_state[0:1,3:7],
-                lego_state[0:1,3:7],
+                target_state[0:1,3:7],
                 torch.zeros((1,4),device=self.device)
                 ),0)
 
@@ -296,8 +298,8 @@ class GraspLegoEnv(RLEnv):
         # hand base state 
         hand_base_state = self._robot.data.body_link_state_w[:,self._hand_base_link_index,:].clone()
 
-        # lego state
-        lego_state =  self._lego.data.root_link_state_w[:,:].clone()
+        # target state
+        target_state =  self._target.data.root_link_state_w[:,:].clone()
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
@@ -306,7 +308,7 @@ class GraspLegoEnv(RLEnv):
         ring_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         pinky_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         hand_base_state[:,:3] -= self.scene.env_origins[:,:]
-        lego_state[:,:3] -= self.scene.env_origins[:,:]
+        target_state[:,:3] -= self.scene.env_origins[:,:]
 
 
         # ********** Get Observation Second **********
@@ -322,17 +324,17 @@ class GraspLegoEnv(RLEnv):
         # 13:25 => arm and hand joint velocity, 13 dim
         self._obs[:,13:26] = self.cfg.vel_obs_scale * joint_vel
 
-        # 26:40 => 手指距离目标lego块的距离, 5 * 3 dim
+        # 26:40 => 手指距离目标target块的距离, 5 * 3 dim
         # 大拇指
-        self._obs[:,26:29] =  thumb_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,26:29] =  thumb_tip_link_state[:,:3] - target_state[:,:3]
         # 食指
-        self._obs[:,29:32] =  index_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,29:32] =  index_tip_link_state[:,:3] - target_state[:,:3]
         # 中指
-        self._obs[:,32:35] =  middle_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,32:35] =  middle_tip_link_state[:,:3] - target_state[:,:3]
         # 无名指
-        self._obs[:,35:38] =  ring_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,35:38] =  ring_tip_link_state[:,:3] - target_state[:,:3]
         # 小拇指
-        self._obs[:,38:41] =  pinky_tip_link_state[:,:3] - lego_state[:,:3]
+        self._obs[:,38:41] =  pinky_tip_link_state[:,:3] - target_state[:,:3]
 
         # 41:53 => action , 13 dim
         self._obs[:,41:54] = self.actions.clone()
@@ -340,8 +342,8 @@ class GraspLegoEnv(RLEnv):
         # 53:59 => hand base link pose , 7 dim
         self._obs[:,54:61] = hand_base_state[:,:7]
 
-        # 76:82 =>lego_pose, 7 dim
-        self._obs[:,61:68] = lego_state[:,:7]
+        # 76:82 =>target_pose, 7 dim
+        self._obs[:,61:68] = target_state[:,:7]
 
         # 83:88 => hand base link linear velocity and angular velocity , 6 dim
         self._obs[:,68:74] = hand_base_state[:,7:]
@@ -355,10 +357,10 @@ class GraspLegoEnv(RLEnv):
         self._obs[:,104:114] = ring_tip_link_state[:,3:]
         self._obs[:,114:124] = pinky_tip_link_state[:,3:]
 
-        # 76:82 =>lego_pose, 3 dim
-        self._obs[:,124:127] = lego_state[:,7:10]
-        # 76:82 =>lego_pose, 3 dim
-        self._obs[:,127:130] = lego_state[:,10:]
+        # 76:82 =>target_pose, 3 dim
+        self._obs[:,124:127] = target_state[:,7:10]
+        # 76:82 =>target_pose, 3 dim
+        self._obs[:,127:130] = target_state[:,10:]
 
         # critic obs不确定是什么且为和必须，缺少会报错，暂时设置为和obs一样
         observations = {"policy": self._obs, "critic":self._obs}
@@ -375,17 +377,17 @@ class GraspLegoEnv(RLEnv):
         thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
         index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
 
-        # lego state
-        lego_state =  self._lego.data.root_link_state_w[:,:].clone()
+        # target state
+        target_state =  self._target.data.root_link_state_w[:,:].clone()
 
-        # lego target position
-        lego_target_pos = self._lego_init_pose[:,:3].clone() + torch.tensor([0, 0, self.cfg.lift_height_target],device=self.device).repeat(self.num_envs, 1)
+        # target target position
+        target_target_pos = self._target_init_pose[:,:3].clone() + torch.tensor([0, 0, self.cfg.lift_height_target],device=self.device).repeat(self.num_envs, 1)
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         index_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
-        lego_state[:,:3] -= self.scene.env_origins[:,:]
-        lego_target_pos[:,:3] -= self.scene.env_origins[:,:]
+        target_state[:,:3] -= self.scene.env_origins[:,:]
+        target_target_pos[:,:3] -= self.scene.env_origins[:,:]
         # ********** Get Data First **********
 
         # 食指和中指距离目标距离和越小,奖励越大， 最小距离 0.01
@@ -395,7 +397,7 @@ class GraspLegoEnv(RLEnv):
         """
         fingertip_pos = [thumb_tip_link_state[:,:3],index_tip_link_state[:,:3]]
         # 定义拇指和食指距离乐高块的距离之和
-        finger_dist = sum([torch.norm(lego_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
+        finger_dist = sum([torch.norm(target_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
         distance_reward = 1.0 * torch.exp(- 5 * torch.clamp(finger_dist - torch.tensor(0.02,device = self.device), torch.tensor(0,device = self.device), None))
 
         # 食指和拇指中点距目标的距离
@@ -409,10 +411,10 @@ class GraspLegoEnv(RLEnv):
             pose_dist max is 6
         """
         grasp_fingers_pos = (thumb_tip_link_state[:,:3] + index_tip_link_state[:,:3]) / 2
-        # pose_dist = tolerance(grasp_fingers_pos, lego_state[:,:3], 0.016, 0.01)
+        # pose_dist = tolerance(grasp_fingers_pos, target_state[:,:3], 0.016, 0.01)
         # pose_reward = pose_dist * 6
 
-        grasp_fingers_dis = torch.norm(lego_state[:,:3] - grasp_fingers_pos, p=2, dim=-1)
+        grasp_fingers_dis = torch.norm(target_state[:,:3] - grasp_fingers_pos, p=2, dim=-1)
         pose_dist = 1.0 * torch.exp(- 5 * grasp_fingers_dis)
         pose_reward = pose_dist * 6
         # grasp_fingers_pos_finish = time.time()
@@ -435,8 +437,8 @@ class GraspLegoEnv(RLEnv):
             lift_reward max 720
         """
         # 此处 Target pos 应该转为局部坐标系
-        goal_dist = torch.norm(lego_target_pos- lego_state[:,:3], p=2, dim=-1)
-        # Todo:确认lego距离期望位置的距离，与期望捡起高度的插值，有什么具体意义？是否正确
+        goal_dist = torch.norm(target_target_pos- target_state[:,:3], p=2, dim=-1)
+        # Todo:确认target距离期望位置的距离，与期望捡起高度的插值，有什么具体意义？是否正确
         lift_reward = pose_dist * 400 * torch.clamp((self._lift_height_target- goal_dist), -0.05, None)
         
         # Penalize actions
@@ -454,7 +456,7 @@ class GraspLegoEnv(RLEnv):
         
         self.extras['dist_reward'] += distance_reward - self.pre_distance_reward # type: ignore
         self.extras['pose_reward'] += pose_reward  - self.pre_pose_reward# type: ignore
-        self.extras['lego_up_reward'] += lift_reward - self.pre_lift_reward# type: ignore
+        self.extras['target_up_reward'] += lift_reward - self.pre_lift_reward# type: ignore
         self.extras['angle_reward'] += angle_reward - self.pre_angle_reward# type: ignore
         self.extras['action_penalty'] += action_penalty # type: ignore
 
@@ -491,16 +493,16 @@ class GraspLegoEnv(RLEnv):
         thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
         index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
 
-        # lego state
-        lego_state =  self._lego.data.root_link_state_w[:,:].clone()
+        # target state
+        target_state =  self._target.data.root_link_state_w[:,:].clone()
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         index_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
-        lego_state[:,:3] -= self.scene.env_origins[:,:]
+        target_state[:,:3] -= self.scene.env_origins[:,:]
 
         fingertip_pos = [thumb_tip_link_state[:,:3],index_tip_link_state[:,:3]]
-        finger_dist = sum([torch.norm(lego_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
+        finger_dist = sum([torch.norm(target_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
 
         # todo:确认重置规则，GYM源代码中只有一个env，所以不确定是一个完成所有重置，还是谁完成谁重置
         resets = torch.where(finger_dist <= -1, torch.ones(self.num_envs,device=self.device), torch.zeros(self.num_envs,device=self.device))# type: ignore
@@ -523,7 +525,7 @@ class GraspLegoEnv(RLEnv):
         if self.cfg.enable_output and self._data is not None:
             env_save_list = []
             for i in range(self.scene.num_envs):
-                delta_z = self._lego.data.root_com_pos_w[i,2] - self._lego_init_pose[i,2]
+                delta_z = self._target.data.root_com_pos_w[i,2] - self._target_init_pose[i,2]
                 if abs(delta_z - self.cfg.lift_height_target)<0.1:
                     env_save_list.append(i)
             # single env
@@ -549,7 +551,7 @@ class GraspLegoEnv(RLEnv):
             self.scene.update(dt=self.physics_dt)
 
         # store variables
-        self._lego_init_pose = self._lego.data.root_link_state_w[:,:7].clone()
+        self._target_init_pose = self._target.data.root_link_state_w[:,:7].clone()
 
         # ############ Reset All Variables ################
 
@@ -569,7 +571,7 @@ class GraspLegoEnv(RLEnv):
 
         # print and log info
         if self.cfg.env_id_print_data in env_ids and self.common_step_counter > 0:
-            reward_items = ['dist_reward', 'pose_reward', 'lego_up_reward', 'action_penalty', 'angle_reward']
+            reward_items = ['dist_reward', 'pose_reward', 'target_up_reward', 'action_penalty', 'angle_reward']
             extras = {}
             for item in reward_items:
                 extras[item] = self.extras[item].to('cpu').numpy() # type: ignore
@@ -583,7 +585,7 @@ class GraspLegoEnv(RLEnv):
             print(f"dist_reward:      {extras['dist_reward'][self.cfg.env_id_print_data]:.2f} ({(abs(extras['dist_reward'][self.cfg.env_id_print_data]) / total_reward * 100):.2f}%)")
             print(f"angle_reward:     {extras['angle_reward'][self.cfg.env_id_print_data]:.2f} ({(abs(extras['angle_reward'][self.cfg.env_id_print_data]) / total_reward * 100):.2f}%)")
             print(f"pose_reward:      {extras['pose_reward'][self.cfg.env_id_print_data]:.2f} ({(abs(extras['pose_reward'][self.cfg.env_id_print_data]) / total_reward * 100):.2f}%)")
-            print(f"lego_up_reward:   {extras['lego_up_reward'][self.cfg.env_id_print_data]:.2f} ({(abs(extras['lego_up_reward'][self.cfg.env_id_print_data]) / total_reward * 100):.2f}%)")
+            print(f"target_up_reward:   {extras['target_up_reward'][self.cfg.env_id_print_data]:.2f} ({(abs(extras['target_up_reward'][self.cfg.env_id_print_data]) / total_reward * 100):.2f}%)")
             print(f"action_penalty:   {extras['action_penalty'][self.cfg.env_id_print_data]:.2f} ({(abs(extras['action_penalty'][self.cfg.env_id_print_data]) / total_reward * 100):.2f}%)")
             print("#" * 15, "Statistics End", "#" * 15,"\n")
 
@@ -596,7 +598,7 @@ class GraspLegoEnv(RLEnv):
 
 
             # reset extras
-            self.extras = {'dist_reward': 0, 'action_penalty': 0, 'lego_up_reward': 0, "pose_reward": 0, 'angle_reward': 0, "mean_reward":0}
+            self.extras = {'dist_reward': 0, 'action_penalty': 0, 'target_up_reward': 0, "pose_reward": 0, 'angle_reward': 0, "mean_reward":0}
         
         # update episodes
         self._episodes += 1

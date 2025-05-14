@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import copy
 import random
 import re
 from typing import TYPE_CHECKING
@@ -95,14 +96,54 @@ def spawn_multi_asset(
     # note: unlike in the cloner API from Isaac Sim, we do not "reset" xforms on the copied prims.
     #   This is because the "spawn" calls during the creation of the proto prims already handles this operation.
     with Sdf.ChangeBlock():
+        
         for index, prim_path in enumerate(prim_paths):
             # spawn single instance
             env_spec = Sdf.CreatePrimInLayer(stage.GetRootLayer(), prim_path)
-            # randomly select an asset configuration
+ 
+            # Feature: not copy asset already in envs
+            # Author: Feng Yunduo
+            # Date：2025-05-14
+            # Start
+            # Code-Bak:
+            # if cfg.random_choice:
+            #     proto_path = random.choice(proto_prim_paths)
+            # else:
+            #     proto_path = proto_prim_paths[index % len(proto_prim_paths)]
+            #
+
+            env_prim_path = Sdf.Path(prim_path).GetParentPath()
+            # search all children
+            env_prim = stage.GetPrimAtPath(env_prim_path)
+            env_children = env_prim.GetAllChildren() 
+
+            # 
+            proto_exist_index = []
+            for i in range(len(proto_prim_paths)):
+                # proto asset path
+                proto_asset_path = stage.GetPrimAtPath(proto_prim_paths[i]).GetPrimStack()[1].layer.identifier
+                #
+                for child in env_children:
+                    if child.GetPrimStack()[1].layer.identifier == proto_asset_path:
+                        proto_exist_index.append(i)
+                        break
+            # delete proto already exist in env
+            proto_prim_paths_filted = copy.deepcopy(proto_prim_paths)
+            proto_exist_index.sort(reverse=True)
+            for index in proto_exist_index:
+                proto_prim_paths_filted.pop(index)
+
+            # randomly select an asset configuration from filted proto_prim_paths
             if cfg.random_choice:
-                proto_path = random.choice(proto_prim_paths)
+                proto_path = random.choice(proto_prim_paths_filted)
             else:
-                proto_path = proto_prim_paths[index % len(proto_prim_paths)]
+                proto_path = proto_prim_paths_filted[index % len(proto_prim_paths_filted)]
+
+            # Feature: not copy asset already in envs
+            # Author: Feng Yunduo
+            # Date：2025-05-14
+            # End   
+               
             # copy the proto prim
             Sdf.CopySpec(env_spec.layer, Sdf.Path(proto_path), env_spec.layer, Sdf.Path(prim_path))
 

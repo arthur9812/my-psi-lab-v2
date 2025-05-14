@@ -31,5 +31,4 @@ class RandomCfg():
     # deformable_objects_cfg : dict[str, DeformableObjectCfg] = MISSING # type: ignore
     #"""The deformable objects random configuration."""
 
-    task_cfg : None | TaskRandomCfg = None
 

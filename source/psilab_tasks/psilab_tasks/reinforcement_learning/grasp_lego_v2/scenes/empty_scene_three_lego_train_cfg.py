@@ -40,7 +40,7 @@ EMPTY_SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
         env_spacing=4.0, 
-        replicate_physics=True,
+        replicate_physics=False,
         
         # global light
         global_light_cfg = AssetBaseCfg(
@@ -250,10 +250,15 @@ EMPTY_SCENE_CFG = SceneCfg(
                     )
                 ),
 
-            "lego" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Lego",
-                spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
+            "target" : RigidObjectCfg(
+                prim_path="/World/envs/env_[0-9]+/Target",
+                spawn=sim_utils.MultiUsdFileCfg(
+                    usd_path=[
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x1.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x3.usd",
+                    ],
+                    random_choice=False,
                     scale=(1.0,1.0,1.0),
                     visual_material=sim_utils.PreviewSurfaceCfg(
                         diffuse_color=(0.80, 0.64, 0.20)
@@ -264,7 +269,9 @@ EMPTY_SCENE_CFG = SceneCfg(
                     rigid_props=RigidBodyPropertiesCfg(
                         solver_position_iteration_count=255,
                     ),
-            
+                    semantic_tags=[
+                        ("class", "target")
+                    ]
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=(0.5,-0.105,0.8),
@@ -329,7 +336,7 @@ EMPTY_SCENE_CFG = SceneCfg(
             global_light_cfg = None,
             local_lights_cfg = None,
             rigid_objects_cfg = {
-                "lego": RigidRandomCfg(
+                "target": RigidRandomCfg(
                     random_type="range",
                     random_position=True,
                     random_orientation=True,

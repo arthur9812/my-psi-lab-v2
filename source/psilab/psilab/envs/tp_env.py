@@ -71,6 +71,8 @@ class TPEnv(RLEnv):
         self.scene.update(dt=self.physics_dt)
 
     def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
+        # # reset step counter
+        # self._sim_step_counter=0
         # reset scene
         self.scene.reset()
         # 

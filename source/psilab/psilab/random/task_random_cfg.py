@@ -25,7 +25,7 @@ class TaskRandomCfg():
     target_num : int = MISSING # type: ignore
     """Target number."""
 
-    target_indexs : list[int] = None # type: ignore
+    target_indexs : list[list[int]] = None # type: ignore
     """The indexs of target in target list."""
 
     obstacle_list : list[str] = MISSING # type: ignore
@@ -34,7 +34,7 @@ class TaskRandomCfg():
     obstacle_num : int = MISSING # type: ignore
     """Obstacle number."""
 
-    obstacle_indexs : list[int] = None # type: ignore
+    obstacle_indexs : list[list[int]] = None # type: ignore
     """The indexs of target in obstacle list."""
 
     select_obstacle_from_target : bool  = MISSING # type: ignore

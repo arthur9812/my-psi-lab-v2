@@ -62,7 +62,8 @@ class GraspRigidEnvCfg(RLEnvCfg):
             enable_ccd=True,
             gpu_max_rigid_patch_count = 4096 * 4096,
             gpu_collision_stack_size = 2100000000,
-            gpu_found_lost_pairs_capacity = 137401003
+            gpu_found_lost_pairs_capacity = 137401003,
+            gpu_total_aggregate_pairs_capacity=5196400
         ),
         render=RenderCfg(),
 
@@ -529,13 +530,13 @@ class GraspRigidEnv(RLEnv):
 
         # run 50 step until all rigid is static
         for i in range(50):
-            self.sim.step(render=False)
+            self.sim.step(render=True)
             self.scene.update(dt=self.physics_dt)
 
-        # refresh target
-        target_index = self.scene.cfg.random.task_cfg.target_indexs[0] # type: ignore
-        target_name = self.scene.cfg.random.task_cfg.target_list[target_index] # type: ignore
-        self._target = self.scene.rigid_objects[target_name]
+        # # refresh target
+        # target_index = self.scene.cfg.random.task_cfg.target_indexs[0] # type: ignore
+        # target_name = self.scene.cfg.random.task_cfg.target_list[target_index] # type: ignore
+        self._target = self.scene.rigid_objects["target"]
         # store variables
         self._target_init_pose = self._target.data.root_link_state_w[:,:7].clone()
 

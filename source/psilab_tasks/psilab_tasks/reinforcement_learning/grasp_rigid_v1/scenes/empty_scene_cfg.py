@@ -42,7 +42,7 @@ EMPTY_SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
         env_spacing=4.0, 
-        replicate_physics=True,
+        replicate_physics=False,
         
         # global light
         global_light_cfg = AssetBaseCfg(
@@ -194,22 +194,22 @@ EMPTY_SCENE_CFG = SceneCfg(
                    "base_camera": TiledCameraCfg(
                         prim_path="/World/envs/env_[0-9]+/Robot/base_camera_rgb/base_camera_rgb",
                         data_types=["rgb"],
-                        width=224,
-                        height=224,
+                        width=640,
+                        height=480,
                         spawn=None,
                     ),
-                    "arm1_camera": TiledCameraCfg(
-                        prim_path="/World/envs/env_[0-9]+/Robot/arm1_camera_rgb/arm1_camera_rgb",
-                        data_types=["rgb"],
-                        width=224,
-                        height=224,
-                        spawn=None,
-                    ),
+                    # "arm1_camera": TiledCameraCfg(
+                    #     prim_path="/World/envs/env_[0-9]+/Robot/arm1_camera_rgb/arm1_camera_rgb",
+                    #     data_types=["rgb"],
+                    #     width=224,
+                    #     height=224,
+                    #     spawn=None,
+                    # ),
                     "arm2_camera": TiledCameraCfg(
                         prim_path="/World/envs/env_[0-9]+/Robot/arm2_camera_rgb/arm2_camera_rgb",
                         data_types=["rgb"],
-                        width=224,
-                        height=224,
+                        width=640,
+                        height=480,
                         spawn=None,
                     ),
                 }
@@ -252,78 +252,110 @@ EMPTY_SCENE_CFG = SceneCfg(
                     )
                 ),
 
-            "lego1" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Lego1",
-                spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x1.usd",
+            "target" : RigidObjectCfg(
+                prim_path="/World/envs/env_[0-9]+/Target",
+                spawn=sim_utils.MultiUsdFileCfg(
+                    usd_path=[
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
+                    ],
+                    random_choice=False,
                     scale=(1.0,1.0,1.0),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
-                    mass_props=MassPropertiesCfg(
-                        mass = 0.01
-                    ),
                     rigid_props=RigidBodyPropertiesCfg(
                         rigid_body_enabled=True,
                         solver_position_iteration_count=255,
                     ),
-            
                 ),
+                
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.6,-0.105,0.8),
-                    rot= (1,0,0,0)
+                    pos=(0.6,-0.105,0.78),
+                    rot= (1.0,0.0,0.0,0.0)
                 )
             ),
-            
-            "lego2" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Lego2",
-                spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
-                    scale=(1.0,1.0,1.0),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
-                    mass_props=MassPropertiesCfg(
-                        mass = 0.01
-                    ),
-                    rigid_props=RigidBodyPropertiesCfg(
-                        rigid_body_enabled=True,
-                        solver_position_iteration_count=255,
-                    ),
-            
-                ),
-                init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.5,-0.105,0.8),
-                    rot= (1,0,0,0)
-                )
-            ),
-                   
-            "lego3" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Lego3",
-                spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x3.usd",
-                    scale=(1.0,1.0,1.0),
-                    # visual_material=sim_utils.PreviewSurfaceCfg(
-                    #     diffuse_color=(0.80, 0.64, 0.20)
-                    # ),
-                    mass_props=MassPropertiesCfg(
-                        mass = 0.01
-                    ),
-                    rigid_props=RigidBodyPropertiesCfg(
-                        rigid_body_enabled=True,
-                        solver_position_iteration_count=255,
-                    ),
-            
-                ),
-                init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.4,-0.105,0.8),
-                    rot= (1,0,0,0)
-                )
-            ),
-       
+
+            # "obstacle1" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Obstacle1",
+            #     spawn=sim_utils.MultiUsdFileCfg(
+            #         usd_path=[
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
+            #         ],
+            #         random_choice=True,
+            #         scale=(1.0,1.0,1.0),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #             rigid_body_enabled=True,
+            #             solver_position_iteration_count=255,
+            #         ),
+            #     ),
+                
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.6,-0.105,0.78),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
+
+            # "obstacle2" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Obstacle2",
+            #     spawn=sim_utils.MultiUsdFileCfg(
+            #         usd_path=[
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
+            #         ],
+            #         random_choice=True,
+            #         scale=(1.0,1.0,1.0),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #             rigid_body_enabled=True,
+            #             solver_position_iteration_count=255,
+            #         ),
+            #     ),
+                
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.6,-0.105,0.78),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
+
         },
         
-
         # rigid objects
         deformable_objects_cfg ={},
         
@@ -379,43 +411,38 @@ EMPTY_SCENE_CFG = SceneCfg(
             global_light_cfg = None,
             local_lights_cfg = None,
             rigid_objects_cfg = {
-                "lego2": RigidRandomCfg(
+                "target": RigidRandomCfg(
                     random_type="range",
                     random_position=True,
-                    random_orientation=True,
-                    random_material=True,
+                    random_orientation=False,
+                    random_material=False,
                     position_range=[0.12,0.155,0.0],
                     position_list=None,
                     orientation_list=None,
-                    material_cfg= MaterialRandomCfg(
-                        enable_random=True,
-                        shader_path="/World/envs/env_[0-9]+/Lego2/Looks/material_DefaultMaterial/Shader",
-                        random_type="range",
-                        material_type = "color",
-                        color_range=[
-                            [0,0,0],
-                            [255,255,255]
-                        ], # type: ignore
-                        color_list = [
-                            [0,32,54],
-                            [231,65,0],
-                            [21,123,10],
-                        ], # type: ignore
-                        texture_list =[]
-
-                    )
+                    material_cfg= None
+                ),
+                "obstacle1": RigidRandomCfg(
+                    random_type="range",
+                    random_position=True,
+                    random_orientation=False,
+                    random_material=False,
+                    position_range=[0.12,0.155,0.0],
+                    position_list=None,
+                    orientation_list=None,
+                    material_cfg= None
+                ),
+                "obstacle2": RigidRandomCfg(
+                    random_type="range",
+                    random_position=True,
+                    random_orientation=False,
+                    random_material=False,
+                    position_range=[0.12,0.155,0.0],
+                    position_list=None,
+                    orientation_list=None,
+                    material_cfg= None
                 )
             },
-            task_cfg = TaskRandomCfg(
-                enable=True,
-                target_list=["lego1","lego2","lego3"],
-                target_num=1,
-                obstacle_list=[],
-                obstacle_num=0,
-                select_obstacle_from_target=False,
-                position_offset=[2.0,0.0,0.1],
-                space=0.5
-            )
+            
 
         )
 

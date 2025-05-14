@@ -294,7 +294,7 @@ class Scene(InteractiveScene):
         return all_keys
 
 
-    
+
     # def __getitem__(self, key: str) -> Any:
     #     """Returns the scene entity with the given key.
 
@@ -436,15 +436,15 @@ class Scene(InteractiveScene):
             if hasattr(asset_cfg, "collision_group") and asset_cfg.collision_group == -1:
                 asset_paths = sim_utils.find_matching_prim_paths(asset_cfg.prim_path)
                 self._global_prim_paths += asset_paths
-
-        
+        # Author: Feng Yunduo 2025-02-08 start
+        # delete rigid objects according to task random confgi
+        # self._apply_task_random_v2()
+        # Author: Feng Yunduo 2025-02-08 start
 
     def _apply_random(self):
         
         # rigid objects
         self._apply_rigid_objects_random()
-        # task
-        self._apply_task_random()
 
 
     def _apply_lights_random(self):
@@ -536,106 +536,171 @@ class Scene(InteractiveScene):
                                 if texture:
                                     texture.Set(material_cfg.texture_list[index])
 
-    def _apply_task_random(self):
+    # Backup
+    # def _apply_task_random(self):
 
-        # 
-        # if not self.cfg.random
-        if not self.cfg.random or not self.cfg.random.task_cfg or not self.cfg.random.task_cfg.enable: # type: ignore
-            return
-        #
-        task_cfg = self.cfg.random.task_cfg # type: ignore
-        # activate target
-        target_list = task_cfg.target_list # type: ignore
-        target_indexs = [i for i in range(len(target_list))]
-        random.shuffle(target_indexs) 
-        task_cfg.target_indexs = [] # type: ignore
-        for i in range(task_cfg.target_num): # type: ignore
-            task_cfg.target_indexs.append(target_indexs[-1]) # type: ignore
-            target_indexs.pop()
-        # set attribute of target
-        for index in task_cfg.target_indexs: # type: ignore
-            target_name = target_list[index]
-            prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[target_name].prim_path)
-            for prim_path in prim_paths:
-                # get prim first
-                prim = prim_utils.get_prim_at_path(prim_path)
-                #
-                safe_set_attribute_on_usd_prim(prim, f"visibility", "inherited", camel_case=False)
-        # activate obstacle
-        if task_cfg.select_obstacle_from_target: # type: ignore
-            for i in range(task_cfg.obstacle_num): # type: ignore
-                task_cfg.obstacle_indexs.append(target_indexs[-1]) # type: ignore
-                target_indexs.pop()
-            # activate attribute of target
-            for index in task_cfg.obstacle_indexs: # type: ignore
-                obstacle_name = target_list[index]
-                prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[obstacle_name].prim_path)
-                for prim_path in prim_paths:
-                    # get prim first
-                    prim = prim_utils.get_prim_at_path(prim_path)
-                    #
-                    safe_set_attribute_on_usd_prim(prim, f"visibility", "inherited", camel_case=False)
-        else:
-            obstacle_list = task_cfg.obstacle_list # type: ignore
-            obstacle_indexs = [i for i in range(len(obstacle_list))]
-            random.shuffle(obstacle_indexs) 
-            task_cfg.obstacle_indexs = [] # type: ignore
-            for i in range(task_cfg.obstacle_num): # type: ignore
-                task_cfg.obstacle_indexs.append(obstacle_indexs[-1]) # type: ignore
-                obstacle_indexs.pop()
-            # activate attribute of target
-            for index in task_cfg.obstacle_indexs: # type: ignore
-                obstacle_name = obstacle_list[index]
-                prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[obstacle_name].prim_path)
-                for prim_path in prim_paths:
-                    # get prim first
-                    prim = prim_utils.get_prim_at_path(prim_path)
-                    #
-                    safe_set_attribute_on_usd_prim(prim, f"visibility", "inherited", camel_case=False)
+    #     # 
+    #     # if not self.cfg.random
+    #     if not self.cfg.random or not self.cfg.random.task_cfg or not self.cfg.random.task_cfg.enable: # type: ignore
+    #         return
+    #     #
+    #     task_cfg = self.cfg.random.task_cfg # type: ignore
+    #     # activate target
+    #     target_list = task_cfg.target_list # type: ignore
+    #     target_indexs = [i for i in range(len(target_list))]
+    #     random.shuffle(target_indexs) 
+    #     task_cfg.target_indexs = [] # type: ignore
+    #     for i in range(task_cfg.target_num): # type: ignore
+    #         task_cfg.target_indexs.append(target_indexs[-1]) # type: ignore
+    #         target_indexs.pop()
+    #     # set attribute of target
+    #     for index in task_cfg.target_indexs: # type: ignore
+    #         target_name = target_list[index]
+    #         prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[target_name].prim_path)
+    #         for prim_path in prim_paths:
+    #             # get prim first
+    #             prim = prim_utils.get_prim_at_path(prim_path)
+    #             #
+    #             safe_set_attribute_on_usd_prim(prim, f"visibility", "inherited", camel_case=False)
+    #     # activate obstacle
+    #     if task_cfg.select_obstacle_from_target and task_cfg.obstacle_num>0: # type: ignore
+    #         for i in range(task_cfg.obstacle_num): # type: ignore
+    #             task_cfg.obstacle_indexs.append(target_indexs[-1]) # type: ignore
+    #             target_indexs.pop()
+    #         # activate attribute of target
+    #         for index in task_cfg.obstacle_indexs: # type: ignore
+    #             obstacle_name = target_list[index]
+    #             prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[obstacle_name].prim_path)
+    #             for prim_path in prim_paths:
+    #                 # get prim first
+    #                 prim = prim_utils.get_prim_at_path(prim_path)
+    #                 #
+    #                 safe_set_attribute_on_usd_prim(prim, f"visibility", "inherited", camel_case=False)
+    #     else:
+    #         obstacle_list = task_cfg.obstacle_list # type: ignore
+    #         obstacle_indexs = [i for i in range(len(obstacle_list))]
+    #         random.shuffle(obstacle_indexs) 
+    #         task_cfg.obstacle_indexs = [] # type: ignore
+    #         for i in range(task_cfg.obstacle_num): # type: ignore
+    #             task_cfg.obstacle_indexs.append(obstacle_indexs[-1]) # type: ignore
+    #             obstacle_indexs.pop()
+    #         # activate attribute of target
+    #         for index in task_cfg.obstacle_indexs: # type: ignore
+    #             obstacle_name = obstacle_list[index]
+    #             prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[obstacle_name].prim_path)
+    #             for prim_path in prim_paths:
+    #                 # get prim first
+    #                 prim = prim_utils.get_prim_at_path(prim_path)
+    #                 #
+    #                 safe_set_attribute_on_usd_prim(prim, f"visibility", "inherited", camel_case=False)
             
-        # disactivate target and obstacle objects
-        disactivate_object_num = len(target_indexs) + len(obstacle_indexs)
-        cloner = GridCloner(spacing=task_cfg.space) # type: ignore
-        transforms = cloner.get_clone_transforms(disactivate_object_num)
-        root_state = torch.cat((
-            torch.tensor(transforms[0],device=self.device),
-            torch.tensor(transforms[1],device=self.device),
-            torch.zeros((disactivate_object_num,6),device=self.device)
-            ),dim=1).unsqueeze(0).repeat(self.num_envs,1,1)
-        root_state[:,:,:3] += self.env_origins.unsqueeze(1).repeat(1,disactivate_object_num,1)
-        root_state[:,:,:3] += torch.tensor(task_cfg.position_offset,device=self.device).unsqueeze(0).unsqueeze(0).repeat(self.num_envs,disactivate_object_num,1)
-        index_temp = 0
-        # disactivate target
-        for index in target_indexs:
-            name = target_list[index]
-            self.rigid_objects[name].write_root_state_to_sim(root_state[:,index_temp,:])
-            index_temp+=1
-        # disactivate obstale
-        if not task_cfg.select_obstacle_from_target:
-            for index in obstacle_indexs:
-                name = obstacle_list[index]
-                self.rigid_objects[name].write_root_pose_to_sim(root_state[:,index_temp,:])
-                index_temp+=1
-        # set visibility attribute
-        for index in target_indexs: # type: ignore
-            target_name = target_list[index]
-            prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[target_name].prim_path)
-            for prim_path in prim_paths:
-                # get prim first
-                prim = prim_utils.get_prim_at_path(prim_path)
-                #
-                safe_set_attribute_on_usd_prim(prim, f"visibility", "invisible", camel_case=False)
-        if not task_cfg.select_obstacle_from_target: # type: ignore
-            for index in obstacle_indexs: # type: ignore
-                name = obstacle_list[index]
-                prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[name].prim_path)
-                for prim_path in prim_paths:
-                    # get prim first
-                    prim = prim_utils.get_prim_at_path(prim_path)
-                    #
-                    safe_set_attribute_on_usd_prim(prim, f"visibility", "invisible", camel_case=False)
+    #     # disactivate target and obstacle objects
+    #     disactivate_object_num = len(target_indexs) + len(obstacle_indexs)
+    #     cloner = GridCloner(spacing=task_cfg.space) # type: ignore
+    #     transforms = cloner.get_clone_transforms(disactivate_object_num)
+    #     root_state = torch.cat((
+    #         torch.tensor(transforms[0],device=self.device),
+    #         torch.tensor([1.0,0.0,0.0,0.0],device=self.device).unsqueeze(0).repeat(disactivate_object_num,1),
+    #         torch.zeros((disactivate_object_num,6),device=self.device)
+    #         ),dim=1).unsqueeze(0).repeat(self.num_envs,1,1)
+    #     root_state[:,:,:3] += self.env_origins.unsqueeze(1).repeat(1,disactivate_object_num,1)
+    #     root_state[:,:,:3] += torch.tensor(task_cfg.position_offset,device=self.device).unsqueeze(0).unsqueeze(0).repeat(self.num_envs,disactivate_object_num,1)
+    #     index_temp = 0
+    #     # disactivate target
+    #     for index in target_indexs:
+    #         name = target_list[index]
+    #         root_state[:,index_temp,3:7] = self.rigid_objects[name].data.default_root_state[:,3:7]
+    #         self.rigid_objects[name].write_root_state_to_sim(root_state[:,index_temp,:])
+    #         index_temp+=1
+    #     # disactivate obstale
+    #     if not task_cfg.select_obstacle_from_target:
+    #         for index in obstacle_indexs:
+    #             name = obstacle_list[index]
+    #             root_state[:,index_temp,3:7] = self.rigid_objects[name].data.default_root_state[:,3:7]
+    #             self.rigid_objects[name].write_root_pose_to_sim(root_state[:,index_temp,:])
+    #             index_temp+=1
+    #     # set visibility attribute
+    #     for index in target_indexs: # type: ignore
+    #         target_name = target_list[index]
+    #         prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[target_name].prim_path)
+    #         for prim_path in prim_paths:
+    #             # get prim first
+    #             prim = prim_utils.get_prim_at_path(prim_path)
+    #             #
+    #             safe_set_attribute_on_usd_prim(prim, f"visibility", "invisible", camel_case=False)
+    #     if not task_cfg.select_obstacle_from_target: # type: ignore
+    #         for index in obstacle_indexs: # type: ignore
+    #             name = obstacle_list[index]
+    #             prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[name].prim_path)
+    #             for prim_path in prim_paths:
+    #                 # get prim first
+    #                 prim = prim_utils.get_prim_at_path(prim_path)
+    #                 #
+    #                 safe_set_attribute_on_usd_prim(prim, f"visibility", "invisible", camel_case=False)
             
-        
+    # def _apply_task_random_v2(self):
+    #      # 
+    #     # if not self.cfg.random
+    #     if not self.cfg.random or not self.cfg.random.task_cfg or not self.cfg.random.task_cfg.enable: # type: ignore
+    #         return
+    #     #
+    #     task_cfg = self.cfg.random.task_cfg # type: ignore
+    #     # activate target
+    #     target_list = task_cfg.target_list # type: ignore
+    #     target_indexs_random : list[list[int]] = []
+    #     target_indexs_total : list[list[int]] = []
+    #     # target
+    #     for i in range(self.num_envs):
+    #         #
+    #         indexs_total_temp = [i for i in range(len(target_list))]
+    #         target_indexs_random_temp = []
+    #         random.shuffle(indexs_total_temp) 
+    #         for j in range(len(target_list)):
+    #             target_indexs_random_temp.append(indexs_total_temp[-1])
+    #             indexs_total_temp.pop()
+    #         target_indexs_random.append(target_indexs_random_temp)
+    #         target_indexs_total.append(target_indexs_random_temp)
+
+    #     # obstacle
+    #     # activate obstacle
+    #     if task_cfg.select_obstacle_from_target and task_cfg.obstacle_num>0: # type: ignore
+    #         for i in range(task_cfg.obstacle_num): # type: ignore
+    #             task_cfg.obstacle_indexs.append(target_indexs[-1]) # type: ignore
+    #             target_indexs.pop()
+    #     else:
+    #         obstacle_list = task_cfg.obstacle_list # type: ignore
+    #         obstacle_indexs = [i for i in range(len(obstacle_list))]
+    #         random.shuffle(obstacle_indexs) 
+    #         task_cfg.obstacle_indexs = [] # type: ignore
+    #         for i in range(task_cfg.obstacle_num): # type: ignore
+    #             task_cfg.obstacle_indexs.append(obstacle_indexs[-1]) # type: ignore
+    #             obstacle_indexs.pop()
+            
+
+    #     # delete target wghich is not selected
+    #     for i in range(self.num_envs):
+    #         for index in target_indexs_total[i]:
+    #             name = target_list[index]
+    #             self.rigid_objects.pop(name)
+    #             prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[name].prim_path)
+    #             for prim_path in prim_paths:
+    #                 # delete prim 
+    #                 prim_utils.delete_prim(prim_path)
+                    
+
+            
+    #         # root_state[:,index_temp,3:7] = self.rigid_objects[name].data.default_root_state[:,3:7]
+    #         # self.rigid_objects[name].write_root_state_to_sim(root_state[:,index_temp,:])
+    #         # index_temp+=1
+    #     # disactivate obstale
+    #     # if not task_cfg.select_obstacle_from_target:
+    #     #     for index in obstacle_indexs:
+    #     #         name = obstacle_list[index]
+    #     #         self.rigid_objects.pop(name)
+    #     #         prim_paths = sim_utils.find_matching_prim_paths(self.cfg.rigid_objects_cfg[name].prim_path)
+    #     #         for prim_path in prim_paths:
+    #     #             # delete prim 
+    #     #             prim_utils.delete_prim(prim_path)
 
     @property
     def robots(self) -> dict[str, RobotBase]:
