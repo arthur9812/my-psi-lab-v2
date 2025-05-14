@@ -350,7 +350,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                             [255,255,255] # type: ignore
                         ],
                         color_list=[], # type: ignore
-
+                        texture_list=[],
 
                     )
                 )
