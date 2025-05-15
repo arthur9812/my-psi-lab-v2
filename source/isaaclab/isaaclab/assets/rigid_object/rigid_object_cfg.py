@@ -7,7 +7,7 @@ from isaaclab.utils import configclass
 
 from ..asset_base_cfg import AssetBaseCfg
 from .rigid_object import RigidObject
-
+import numpy as np
 
 @configclass
 class RigidObjectCfg(AssetBaseCfg):

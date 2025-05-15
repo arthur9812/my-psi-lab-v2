@@ -234,7 +234,6 @@ EMPTY_SCENE_CFG = SceneCfg(
         
         # rigid objects
         rigid_objects_cfg ={
-
             "table" : RigidObjectCfg(
                     prim_path="/World/envs/env_[0-9]+/Table", 
                     spawn=sim_utils.UsdFileCfg(
@@ -402,9 +401,48 @@ EMPTY_SCENE_CFG = SceneCfg(
                     scale=(0.01, 0.01, 0.01),
                 ),
 
-
+                # 10 个点
+                "point_cloud1": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud2": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud3": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud4": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud5": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud6": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud7": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud8": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud9": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                ),
+                "point_cloud10": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.01, 0.01, 0.01),
+                )
             },
-
         ),
 
         random = RandomCfg(
@@ -420,6 +458,18 @@ EMPTY_SCENE_CFG = SceneCfg(
                     position_list=None,
                     orientation_list=None,
                     material_cfg= None
+                    # material_cfg= MaterialRandomCfg(
+                    #     enable_random=True,
+                    #     shader_path="/World/envs/env_[0-9]+/Target/Looks/material/shader",
+                    #     random_type="range",
+                    #     material_type="color",
+                    #     color_range=[
+                    #         [0,0,0],
+                    #         [255,255,255] # type: ignore
+                    #     ],
+                    #     color_list=[], # type: ignore
+                    #     texture_list=[],
+                    # )
                 ),
                 "obstacle1": RigidRandomCfg(
                     random_type="range",
