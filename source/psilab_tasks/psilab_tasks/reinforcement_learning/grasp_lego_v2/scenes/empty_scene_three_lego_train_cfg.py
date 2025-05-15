@@ -32,7 +32,7 @@ from isaaclab.assets import (
 from psilab import PSILAB_USD_ASSET_DIR
 from psilab.configs.robots.psi_awh_01 import PSI_AWH_01_CFG
 from psilab.scene.sence_cfg import SceneCfg
-from psilab.random.random_cfg import RandomCfg,RigidRandomCfg
+from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
 from psilab.assets.robot_base_cfg import RobotBaseCfg
 from isaaclab.assets.articulation import ArticulationCfg
 
@@ -191,7 +191,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                 tiled_cameras={
                    "base_camera": TiledCameraCfg(
                         prim_path="/World/envs/env_[0-9]+/Robot/base_camera_rgb/base_camera_rgb",
-                        data_types=["rgb"],
+                        data_types=["rgb","semantic_segmentation"],
                         width=640,
                         height=480,
                         spawn=None,
@@ -205,10 +205,11 @@ EMPTY_SCENE_CFG = SceneCfg(
                     # ),
                     "arm2_camera": TiledCameraCfg(
                         prim_path="/World/envs/env_[0-9]+/Robot/arm2_camera_rgb/arm2_camera_rgb",
-                        data_types=["rgb"],
+                        data_types=["rgb","semantic_segmentation"],
                         width=640,
                         height=480,
                         spawn=None,
+                        
                     ),
                 }
     
@@ -260,9 +261,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                     ],
                     random_choice=False,
                     scale=(1.0,1.0,1.0),
-                    visual_material=sim_utils.PreviewSurfaceCfg(
-                        diffuse_color=(0.80, 0.64, 0.20)
-                    ),
+                    visual_material=None,
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
@@ -343,7 +342,20 @@ EMPTY_SCENE_CFG = SceneCfg(
                     random_material=False,
                     position_range=[0.12,0.155,0.0],
                     position_list=None,
-                    orientation_list=None
+                    orientation_list=None,
+
+                    material_cfg=MaterialRandomCfg(
+                        enable_random=True,
+                        shader_path="/World/envs/env_[0-9]+/Target/Looks/material/shader",
+                        random_type="range",
+                        material_type="color",
+                        color_range=[
+                            [0,0,0],
+                            [255,255,255] # type: ignore
+                        ],
+                        color_list=[], # type: ignore,
+                        texture_list=[]
+                    )
                 )
             },
 

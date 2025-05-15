@@ -13,6 +13,7 @@ def dict_to_h5(dict_data:dict, h5_file:h5py.File, current_path:str):
         path = current_path+key+"/"
         #
         if isinstance(value, dict):
+            #
             dict_to_h5(value, h5_file, current_path+key+"/")
         #
         elif isinstance(value, list):
@@ -37,6 +38,8 @@ def dict_to_h5(dict_data:dict, h5_file:h5py.File, current_path:str):
             else:
                 h5_file.create_dataset(current_path+key,dtype=numpy.float32,data=value)
         #
+        elif isinstance(value, str):
+            h5_file.create_dataset(current_path+key,dtype=dtype_str,data=value)
         
 def dict_to_cpu(dict_data:dict):
     dict_data_cpu=dict_data

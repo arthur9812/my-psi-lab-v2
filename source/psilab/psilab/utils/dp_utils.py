@@ -83,8 +83,8 @@ def process_image(img:torch.Tensor):
 
     # 归一化到[0,1]并调整尺寸
     img = F.interpolate(
-        img.unsqueeze(0),  # 添加batch维度并归一化
-        # img.unsqueeze(0) / 255.0,  # 添加batch维度并归一化
+        # img.unsqueeze(0),  # 添加batch维度并归一化
+        img.unsqueeze(0) / 255.0,  # 添加batch维度并归一化
         size=(224, 224),           # 调整到模型期望的尺寸
         mode='bilinear',
         align_corners=False

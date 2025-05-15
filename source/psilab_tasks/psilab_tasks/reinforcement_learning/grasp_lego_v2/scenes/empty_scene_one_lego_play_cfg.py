@@ -258,9 +258,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                     ],
                     random_choice=False,
                     scale=(1.0,1.0,1.0),
-                    visual_material=sim_utils.PreviewSurfaceCfg(
-                        diffuse_color=(0.80, 0.64, 0.20)
-                    ),
+                    visual_material=None,
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
