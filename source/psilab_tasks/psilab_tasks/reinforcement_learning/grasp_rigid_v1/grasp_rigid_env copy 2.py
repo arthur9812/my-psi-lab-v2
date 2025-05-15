@@ -978,10 +978,7 @@ class GraspRigidEnv(RLEnv):
         self._target = self.scene.rigid_objects["target"]
         # store variables
         self._target_init_pose = self._target.data.root_link_state_w[:,:7].clone()
-        # 这里写成了每次 reset 读一次，会很慢；现在还没加障碍物的随机，所以我这里特判成只有第一次 reset 时才进行读取。后面如果加入随机障碍物就不能这么写。
-        # 另外还没写障碍物的点云读取，这里我对代码有点问题，得问问运铎
-        if self._episodes == 0:
-            self._target_point_cloud = get_target_pointcloud(self.get_usd_path(self._target), self._target.cfg.spawn.scale)
+        self._target_point_cloud = get_target_pointcloud(self.get_usd_path(self._target), self._target.cfg.spawn.scale)
 
         # ############ Reset All Variables ################
 
