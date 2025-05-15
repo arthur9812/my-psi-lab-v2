@@ -205,16 +205,16 @@ def farthest_point_sampling(points, target_count):
     
     return points[selected_indices]
 
-def get_target_pointcloud(usd_paths, scale):
+def get_object_pointcloud(usd_paths, scale):
     """
     获取指定目标的点云数据，并下采样到 200 个点
     
     Args:
-        usd_path (str): USD文件路径
+        usd_path (str): USD文件路径列表，[B]
         scale (tuple): 缩放比例
         
     Returns:
-        np.ndarray: 点云数据，形状为[N, 3]，如果有问题则返回空数组
+        np.ndarray: 点云数据，形状为[B, G, 3]，如果有问题则返回空数组
     """
     # 读取点云
     point_cloud = []
@@ -228,6 +228,33 @@ def get_target_pointcloud(usd_paths, scale):
     point_cloud = numpy.array(point_cloud) # (B, G, 3)
     # print(point_cloud.shape)
     return point_cloud
+
+def get_obstacle_pointcloud(usd_paths, scale):
+    """
+    获取指定目标的点云数据，并下采样到 200 个点
+    
+    Args:
+        usd_path (str): USD文件路径列表，[num, B]
+        scale (tuple): 缩放比例
+        
+    Returns:
+        np.ndarray: 点云数据，形状为[num, B, G, 3]，如果有问题则返回空数组
+    """
+    # 读取点云
+    point_clouds = []
+    for obj in usd_paths:
+        point_cloud = []
+        for usd_path in obj:
+            points = read_usd_mesh_points(usd_path)
+            # 应用缩放
+            if scale:
+                points = points * numpy.array(scale)
+            points = farthest_point_sampling(points, 200)
+            point_cloud.append(points)
+        point_clouds.append(point_cloud)
+    point_clouds = numpy.array(point_clouds) # (num, B, G, 3)
+    # print(point_clouds.shape)
+    return point_clouds
 
 @configclass
 class GraspRigidEnvCfg(RLEnvCfg):
@@ -288,6 +315,8 @@ class GraspRigidEnv(RLEnv):
         # get instances in scene
         self._robot = self.scene.robots["robot"]
         self._target : RigidObject = None # type: ignore
+        self._obstacle1 : RigidObject = None # type: ignore
+        self._obstacle2 : RigidObject = None # type: ignore
         self._visualizer = self.scene.visualizer
 
         # arm joint index
@@ -321,6 +350,8 @@ class GraspRigidEnv(RLEnv):
 
         # lego init pose, position and orientation(w,x,y,z)
         self._target_init_pose = torch.zeros((self.num_envs,7),device=self.device)
+        self._obstacle1_init_pose = torch.zeros((self.num_envs,7),device=self.device)
+        self._obstacle2_init_pose = torch.zeros((self.num_envs,7),device=self.device)
 
         # unit tensors which used to compute
         self._z_unit_tensor = torch.tensor([0, 0, 1], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
@@ -398,6 +429,8 @@ class GraspRigidEnv(RLEnv):
 
             # lego state
             lego_state = self._target.data.root_link_state_w[:,:]
+            obstacle1_state = self._obstacle1.data.root_link_state_w[:,:]
+            obstacle2_state = self._obstacle2.data.root_link_state_w[:,:]
 
             # refresh visualize and marker
             marker_pos = torch.cat((
@@ -511,6 +544,8 @@ class GraspRigidEnv(RLEnv):
 
         # lego state
         lego_state =  self._target.data.root_link_state_w[:,:].clone()
+        obstacle1_state = self._obstacle1.data.root_link_state_w[:,:].clone()
+        obstacle2_state = self._obstacle2.data.root_link_state_w[:,:].clone()
 
         # 转换为Local坐标系
         thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
@@ -520,6 +555,8 @@ class GraspRigidEnv(RLEnv):
         pinky_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         hand_base_state[:,:3] -= self.scene.env_origins[:,:]
         lego_state[:,:3] -= self.scene.env_origins[:,:]
+        obstacle1_state[:,:3] -= self.scene.env_origins[:,:]
+        obstacle2_state[:,:3] -= self.scene.env_origins[:,:]
 
 
         # ********** Get Observation Second **********
@@ -588,6 +625,20 @@ class GraspRigidEnv(RLEnv):
         for prim in prims:
             prim_usd_paths.append(prim.GetPrimStack()[1].layer.identifier)
         return prim_usd_paths
+
+    def get_list_usd_path(self, objects: list[RigidObject]):
+        import isaacsim.core.utils.stage as stage_utils
+        from isaaclab.sim.utils import find_matching_prims
+        # acquire stage
+        prim_usd_pathss = []
+        stage = stage_utils.get_current_stage()
+        for object in objects:
+            prims = find_matching_prims(object.cfg.prim_path)
+            prim_usd_paths = []
+            for prim in prims:
+                prim_usd_paths.append(prim.GetPrimStack()[1].layer.identifier)
+            prim_usd_pathss.append(prim_usd_paths)
+        return prim_usd_pathss
     
     def compute_distance_features(self, object_vertices, hand_link_positions):
         """
@@ -753,6 +804,31 @@ class GraspRigidEnv(RLEnv):
 
         return distance_reward, pose_reward, lift_reward,angle_reward, action_penalty
     '''
+    def _get_distance_features(self, finger_positions, object_state, point_cloud, visualize=False):
+        point_cloud_local_batch = torch.tensor(point_cloud, device=self.device) # (B, G, 3)
+        B, G = point_cloud_local_batch.shape[0], point_cloud_local_batch.shape[1]
+        # print(target_point_cloud)
+    
+        pos = object_state[:, :3]  # (B, 3) - 已在环境局部坐标系中
+        quat = object_state[:, 3:7]  # (B, 4)
+        
+        quat_expanded = quat.unsqueeze(1).repeat(1, G, 1)  # (B, G, 4)
+        
+        # 应用旋转
+        point_cloud_rotated = self.rotate_point_by_quat(point_cloud_local_batch, quat_expanded)  # (B, G, 3)
+        
+        # 添加平移 - 位置已在环境局部坐标系中
+        pos_expanded = pos.unsqueeze(1).repeat(1, G, 1)  # (B, G, 3)
+        point_cloud_env = point_cloud_rotated + pos_expanded  # (B, G, 3)
+        # # 可视化点云
+        self._visualized_points = torch.tensor((point_cloud_env + self.scene.env_origins.unsqueeze(1).repeat(1, G, 1))[1,:10,:])
+
+        distance_features, closest_vertices = self.compute_distance_features(
+            point_cloud_env,  # 已在环境局部坐标系中的点云
+            finger_positions  # 已在环境局部坐标系中的手指位置
+        )
+        return distance_features
+    
     def _get_current_rewards_and_penalty (self) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """"
             Get Rewards and Action Penalty according to current state
@@ -770,6 +846,8 @@ class GraspRigidEnv(RLEnv):
 
         # lego state
         target_state =  self._target.data.root_link_state_w[:,:].clone()
+        obstacle1_state = self._obstacle1.data.root_link_state_w[:,:].clone()
+        obstacle2_state = self._obstacle2.data.root_link_state_w[:,:].clone()
 
         # lego target position
         target_target_pos = self._target_init_pose[:,:3].clone() + torch.tensor([0, 0, self.cfg.lift_height_target],device=self.device).repeat(self.num_envs, 1)
@@ -781,6 +859,9 @@ class GraspRigidEnv(RLEnv):
         ring_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         pinky_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
         target_state[:,:3] -= self.scene.env_origins[:,:]
+        obstacle1_state[:,:3] -= self.scene.env_origins[:,:]
+        obstacle2_state[:,:3] -= self.scene.env_origins[:,:]
+        # print(target_state.shape)
         target_target_pos[:,:3] -= self.scene.env_origins[:,:]
         hand_base_state[:,:3] -= self.scene.env_origins[:,:]
         joint_positions -= self.scene.env_origins[:,:].unsqueeze(1).repeat(1,joint_positions.shape[1],1)
@@ -794,30 +875,10 @@ class GraspRigidEnv(RLEnv):
         ], dim=1) # (B, 5, 3)
         finger_positions = torch.cat([joint_positions, finger_positions], dim=1) # (B, 11, 3)
         
-        # '''
-        point_cloud_local_batch = torch.tensor(self._target_point_cloud, device=self.device) # (B, G, 3)
-        B, G = point_cloud_local_batch.shape[0], point_cloud_local_batch.shape[1]
-        # print(target_point_cloud)
-    
-        pos = target_state[:, :3]  # (B, 3) - 已在环境局部坐标系中
-        quat = target_state[:, 3:7]  # (B, 4)
-        
-        quat_expanded = quat.unsqueeze(1).repeat(1, G, 1)  # (B, G, 4)
-        
-        # 应用旋转
-        point_cloud_rotated = self.rotate_point_by_quat(point_cloud_local_batch, quat_expanded)  # (B, G, 3)
-        
-        # 添加平移 - 位置已在环境局部坐标系中
-        pos_expanded = pos.unsqueeze(1).repeat(1, G, 1)  # (B, G, 3)
-        point_cloud_env = point_cloud_rotated + pos_expanded  # (B, G, 3)
-        # # 可视化点云
-        self._visualized_points = torch.tensor((point_cloud_env + self.scene.env_origins.unsqueeze(1).repeat(1, G, 1))[1,:10,:])
+        target_distance_features = self._get_distance_features(finger_positions, target_state, self._target_point_cloud)
+        obs1_distance_features = self._get_distance_features(finger_positions, obstacle1_state, self._obstacle1_point_cloud)
+        obs2_distance_features = self._get_distance_features(finger_positions, obstacle2_state, self._obstacle2_point_cloud, visualize=True)
 
-        distance_features, closest_vertices = self.compute_distance_features(
-            point_cloud_env,  # 已在环境局部坐标系中的点云
-            finger_positions  # 已在环境局部坐标系中的手指位置
-        )
-        # '''
         # ********** Get Data First **********
 
         target_dist = torch.norm(target_state[:,:3] - target_target_pos[:,:3], p=2, dim=-1)
@@ -858,7 +919,7 @@ class GraspRigidEnv(RLEnv):
         )
         
         # 靠近奖励：手上 11 个关键点到目标点云上最近点的平均距离 
-        hand_to_object_reward = torch.mean(distance_features, dim=-1)  
+        hand_to_object_reward = torch.mean(target_distance_features, dim=-1)  
         hand_to_object_reward = torch.clamp(hand_to_object_reward - 0.04, 0, None)
         hand_to_object_reward = torch.exp(-0.2*(hand_to_object_reward * 50))
 
@@ -976,12 +1037,17 @@ class GraspRigidEnv(RLEnv):
         # target_index = self.scene.cfg.random.task_cfg.target_indexs[0] # type: ignore
         # target_name = self.scene.cfg.random.task_cfg.target_list[target_index] # type: ignore
         self._target = self.scene.rigid_objects["target"]
+        self._obstacle1 = self.scene.rigid_objects["obstacle1"]
+        self._obstacle2 = self.scene.rigid_objects["obstacle2"]
         # store variables
         self._target_init_pose = self._target.data.root_link_state_w[:,:7].clone()
-        # 这里写成了每次 reset 读一次，会很慢；现在还没加障碍物的随机，所以我这里特判成只有第一次 reset 时才进行读取。后面如果加入随机障碍物就不能这么写。
-        # 另外还没写障碍物的点云读取，这里我对代码有点问题，得问问运铎
+        self._obstacle1_init_pose = self._obstacle1.data.root_link_state_w[:,:7].clone()
+        self._obstacle2_init_pose = self._obstacle2.data.root_link_state_w[:,:7].clone()
+        # 这里写成了每次 reset 读一次点云，会很慢；现在每次 reset 的时候环境里的东西不会变，所以我这里特判成只有第一次 reset 时才进行读取。后面如果加入随机物品就不能这么写。
         if self._episodes == 0:
-            self._target_point_cloud = get_target_pointcloud(self.get_usd_path(self._target), self._target.cfg.spawn.scale)
+            self._target_point_cloud = get_object_pointcloud(self.get_usd_path(self._target), self._target.cfg.spawn.scale)
+            self._obstacle1_point_cloud = get_object_pointcloud(self.get_usd_path(self._obstacle1), self._obstacle1.cfg.spawn.scale)
+            self._obstacle2_point_cloud = get_object_pointcloud(self.get_usd_path(self._obstacle2), self._obstacle2.cfg.spawn.scale)
 
         # ############ Reset All Variables ################
 
