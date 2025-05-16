@@ -391,7 +391,6 @@ ROOM_SCENE_CFG = SceneCfg(
                     )
                 )
             },
-            task_cfg = None
 
 
         )

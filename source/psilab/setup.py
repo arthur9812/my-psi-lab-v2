@@ -29,7 +29,6 @@ INSTALL_REQUIRES = [
     "dill==0.3.5.1",
     "diffusers==0.33.1",
     "timm==1.0.12",
-    # "numba==0.56.4"
     "numba==0.57.0",
     "accelerate==0.13.2"
     # "diffusers==0.11.1",

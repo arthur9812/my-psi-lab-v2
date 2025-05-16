@@ -97,6 +97,7 @@
         "${workspaceFolder}/source/isaaclab_assets",
         "${workspaceFolder}/source/psilab",
         "${workspaceFolder}/source/isaaclab_rl",
+        "${workspaceFolder}/source/psi_agent",
         "${workspaceFolder}/source/psilab_tasks"
     ]
 }
