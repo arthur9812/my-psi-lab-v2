@@ -10,7 +10,7 @@ import h5py
 import json
 import torch
 import os
-
+import numpy
 """ IsaacLab Modules  """ 
 from isaaclab.utils.configclass import class_to_dict
 
@@ -52,7 +52,8 @@ def create_data_buffer(env, cfg) -> dict :
         data["robots"][robot_name]["extra"] = {
             "joint_name" : {},
             "joint_index" : {},
-            "cameras" : [],
+            "cameras" : {},
+            "tiled_cameras" : {}
         }
         # extra info: all joint
         data["robots"][robot_name]["extra"]["joint_name"]["all"] = robot.joint_names
@@ -64,12 +65,12 @@ def create_data_buffer(env, cfg) -> dict :
         for camera_name,camera in robot.cameras.items():
             # multi-type
             for data_type in camera.cfg.data_types:
-                data["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
+                data["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type] = {}
         # extra info: tiled cameras
         for camera_name,camera in robot.tiled_cameras.items():
             # multi-type
             for data_type in camera.cfg.data_types:
-                data["robots"][robot_name]["extra"]["cameras"].append(camera_name+ "." + data_type)
+                data["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type] = {}
     # add rigid object
     data["rigid_objects"] = {}
     for object_name in env.scene.rigid_objects.keys():
@@ -90,6 +91,26 @@ def create_data_buffer(env, cfg) -> dict :
         for data_type in camera.cfg.data_types:
             data["cameras"][camera_name+ "." + data_type] = []
     #
+    # extra info
+    data["extra"] = {
+        "cameras" : {},
+        "tiled_cameras" : {},
+    }
+    
+    # extra info:camera
+    for camera_name,camera in env.scene.cameras.items():
+        # multi-type
+        for data_type in camera.cfg.data_types:
+            #
+            data["extra"]["cameras"][camera_name+ "." + data_type]={}
+            
+    # extra info:tiled camera
+    for camera_name,camera in env.scene.tiled_cameras.items():
+        # multi-type
+        for data_type in camera.cfg.data_types:
+            #
+            data["extra"]["tiled_cameras"][camera_name+ "." + data_type]={}
+        
     return data
  
 def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
@@ -145,29 +166,13 @@ def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
             for camera_name,camera in robot.cameras.items():
                 # multi-type
                 for data_type in camera.cfg.data_types:
-                    data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type]={}
-                    # semantic egmentation
-                    if data_type=="semantic_segmentation":       
-                        #
-                        for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
-                            for semantic_key,semantic_value in semantic_data.items():
-                                if semantic_value in env.scene.rigid_objects.keys():
-                                    # RGBA
-                                    data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color_str
+                    data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type]={}          
             # extra info: tiled cameras  
             for camera_name,camera in robot.tiled_cameras.items():
                 # multi-type
                 for data_type in camera.cfg.data_types:
                     # 
                     data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type]={}
-                    # semantic egmentation
-                    if data_type=="semantic_segmentation":
-                        #
-                        for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
-                            for semantic_key,semantic_value in semantic_data.items():
-                                if semantic_value in env.scene.rigid_objects.keys():
-                                    # RGBA
-                                    data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color_str
 
         # add rigid object
         data[f"env_{i}"]["rigid_objects"] = {}
@@ -199,30 +204,14 @@ def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
             for data_type in camera.cfg.data_types:
                 #
                 data[f"env_{i}"]["extra"]["cameras"][camera_name+ "." + data_type]={}
-                # semantic egmentation
-                if data_type=="semantic_segmentation":
-                    #
-                    for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
-                        for semantic_key,semantic_value in semantic_data.items():
-                            if semantic_value in env.scene.rigid_objects.keys():
-                                # RGBA
-                                data[f"env_{i}"]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color_str  
-            
+                
         # extra info:tiled camera
         for camera_name,camera in env.scene.tiled_cameras.items():
             # multi-type
             for data_type in camera.cfg.data_types:
                 #
                 data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type]={}
-                # semantic egmentation
-                if data_type=="semantic_segmentation":
-                    #
-                    for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
-                        for semantic_key,semantic_value in semantic_data.items():
-                            if semantic_value in env.scene.rigid_objects.keys():
-                                # RGBA
-                                data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color_str  
-            
+                
     return data
 
 def parse_data(data: dict, env, cfg) -> dict :
@@ -254,6 +243,36 @@ def parse_data(data: dict, env, cfg) -> dict :
             for data_type in camera.cfg.data_types:
                 image = camera.data.output[data_type].clone()
                 data["robots"][robot_name][camera_name+ "." + data_type].append(image[0,:,:,:])
+        # extra info: cameras
+        for camera_name,camera in robot.cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                # semantic egmentation
+                if data_type=="semantic_segmentation":       
+                    #
+                    for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
+                        for semantic_key,semantic_value in semantic_data.items():
+                            if semantic_value in env.scene.rigid_objects.keys():
+                                # convert color_str:(int, int, int, int) to [int,int,int,int]
+                                color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
+                                # RGBA
+                                if semantic_value not in data["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type].keys():
+                                    data["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color
+        # extra info: tiled cameras  
+        for camera_name,camera in robot.tiled_cameras.items():
+            # multi-type
+            for data_type in camera.cfg.data_types:
+                # semantic egmentation
+                if data_type=="semantic_segmentation":
+                    #
+                    for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
+                        for semantic_key,semantic_value in semantic_data.items():
+                            if semantic_value in env.scene.rigid_objects.keys():
+                                # convert color_str:(int, int, int, int) to [int,int,int,int]
+                                color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
+                                # RGBA
+                                if semantic_value not in data["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type].keys():
+                                    data["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color
 
         # # add contact sensors
         # for contact_name,contact in robot.cameras.items():
@@ -278,6 +297,37 @@ def parse_data(data: dict, env, cfg) -> dict :
             image = camera.data.output[data_type].clone()
             data["cameras"][camera_name+ "." + data_type].append(image[0,:,:,:])
     #
+    # extra info: cameras
+    for camera_name,camera in env.scene.cameras.items():
+        # multi-type
+        for data_type in camera.cfg.data_types:
+            # semantic egmentation
+            if data_type=="semantic_segmentation":       
+                #
+                for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
+                    for semantic_key,semantic_value in semantic_data.items():
+                        if semantic_value in env.scene.rigid_objects.keys():
+                            # convert color_str:(int, int, int, int) to [int,int,int,int]
+                            color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
+                            # RGBA
+                            if semantic_value not in data["extra"]["cameras"][camera_name+ "." + data_type].keys():
+                                data["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color
+    # extra info: tiled cameras  
+    for camera_name,camera in env.scene.tiled_cameras.items():
+        # multi-type
+        for data_type in camera.cfg.data_types:
+            # semantic egmentation
+            if data_type=="semantic_segmentation":
+                #
+                for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
+                    for semantic_key,semantic_value in semantic_data.items():
+                        if semantic_value in env.scene.rigid_objects.keys():
+                            # convert color_str:(int, int, int, int) to [int,int,int,int]
+                            color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
+                            # RGBA
+                            if semantic_value not in data["extra"]["tiled_cameras"][camera_name+ "." + data_type].keys():
+                                data["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color
+
     return data
 
 def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
@@ -315,33 +365,32 @@ def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
             for camera_name,camera in robot.cameras.items():
                 # multi-type
                 for data_type in camera.cfg.data_types:
-                    data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type]={}
                     # semantic egmentation
                     if data_type=="semantic_segmentation":       
                         #
                         for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
                             for semantic_key,semantic_value in semantic_data.items():
                                 if semantic_value in env.scene.rigid_objects.keys():
+                                    # convert color_str:(int, int, int, int) to [int,int,int,int]
+                                    color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
                                     # RGBA
                                     if semantic_value not in data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type].keys():
-                                        data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color_str
+                                        data[f"env_{i}"]["robots"][robot_name]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color
             # extra info: tiled cameras  
             for camera_name,camera in robot.tiled_cameras.items():
                 # multi-type
                 for data_type in camera.cfg.data_types:
-                    # 
-                    data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type]={}
                     # semantic egmentation
                     if data_type=="semantic_segmentation":
                         #
                         for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
                             for semantic_key,semantic_value in semantic_data.items():
                                 if semantic_value in env.scene.rigid_objects.keys():
+                                    # convert color_str:(int, int, int, int) to [int,int,int,int]
+                                    color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
                                     # RGBA
                                     if semantic_value not in data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type].keys():
-                                        data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color_str
-
-
+                                        data[f"env_{i}"]["robots"][robot_name]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color
 
             # # add contact sensors
             # for contact_name,contact in robot.cameras.items():
@@ -369,31 +418,32 @@ def parse_data_muilt_env(data: dict, env, cfg,nums_env) -> dict :
         for camera_name,camera in env.scene.cameras.items():
             # multi-type
             for data_type in camera.cfg.data_types:
-                data[f"env_{i}"]["cameras"][camera_name+ "." + data_type]={}
                 # semantic egmentation
                 if data_type=="semantic_segmentation":       
                     #
                     for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
                         for semantic_key,semantic_value in semantic_data.items():
                             if semantic_value in env.scene.rigid_objects.keys():
+                                # convert color_str:(int, int, int, int) to [int,int,int,int]
+                                color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
                                 # RGBA
                                 if semantic_value not in data[f"env_{i}"]["extra"]["cameras"][camera_name+ "." + data_type].keys():
-                                    data[f"env_{i}"]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color_str
+                                    data[f"env_{i}"]["extra"]["cameras"][camera_name+ "." + data_type][semantic_value]=color
         # extra info: tiled cameras  
         for camera_name,camera in env.scene.tiled_cameras.items():
             # multi-type
             for data_type in camera.cfg.data_types:
-                # 
-                data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type]={}
                 # semantic egmentation
                 if data_type=="semantic_segmentation":
                     #
                     for color_str, semantic_data in camera.data.info["semantic_segmentation"]["idToLabels"].items():
                         for semantic_key,semantic_value in semantic_data.items():
                             if semantic_value in env.scene.rigid_objects.keys():
+                                # convert color_str:(int, int, int, int) to [int,int,int,int]
+                                color = [numpy.uint8(value_temp) for value_temp in color_str[2:-1].split(", ")]
                                 # RGBA
                                 if semantic_value not in data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type].keys():
-                                    data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color_str
+                                    data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type][semantic_value]=color
 
     #
     return data

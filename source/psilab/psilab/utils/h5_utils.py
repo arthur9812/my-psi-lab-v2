@@ -24,6 +24,9 @@ def dict_to_h5(dict_data:dict, h5_file:h5py.File, current_path:str):
             if isinstance(value[0], str):
                 h5_file.create_dataset(current_path+key,dtype=dtype_str,data=value)
             # 
+            elif type(value[0])==numpy.uint8:
+                h5_file.create_dataset(current_path+key,dtype=numpy.uint8,data=value)
+            # 
             elif isinstance(value[0], int):
                 h5_file.create_dataset(current_path+key,dtype=numpy.int8,data=value)
             # 
