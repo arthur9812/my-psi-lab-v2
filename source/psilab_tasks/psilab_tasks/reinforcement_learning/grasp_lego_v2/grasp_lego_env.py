@@ -19,7 +19,6 @@ from isaacsim.core.utils.torch.rotations import compute_heading_and_up, compute_
 """ Isaac Lab Modules  """ 
 from isaaclab.sim import SimulationCfg,PhysxCfg,RenderCfg
 from isaaclab.utils import configclass
-from isaaclab.assets.rigid_object.rigid_object import RigidObject
 
 """ Psi Lab Modules  """
 from psilab import OUTPUT_DIR
@@ -603,8 +602,6 @@ class GraspLegoEnv(RLEnv):
         
         # update episodes
         self._episodes += 1
-
-    
 
 @torch.jit.script
 def torch_rand_float(lower, upper, shape, device):

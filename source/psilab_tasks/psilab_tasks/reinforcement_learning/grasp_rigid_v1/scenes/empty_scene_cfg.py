@@ -234,6 +234,7 @@ EMPTY_SCENE_CFG = SceneCfg(
         
         # rigid objects
         rigid_objects_cfg ={
+
             "table" : RigidObjectCfg(
                     prim_path="/World/envs/env_[0-9]+/Table", 
                     spawn=sim_utils.UsdFileCfg(
@@ -285,73 +286,73 @@ EMPTY_SCENE_CFG = SceneCfg(
                 )
             ),
 
-            "obstacle1" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Obstacle1",
-                spawn=sim_utils.MultiUsdFileCfg(
-                    usd_path=[
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
-                    ],
-                    random_choice=True,
-                    scale=(1.0,1.0,1.0),
-                    rigid_props=RigidBodyPropertiesCfg(
-                        rigid_body_enabled=True,
-                        solver_position_iteration_count=255,
-                    ),
-                ),
+            # "obstacle1" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Obstacle1",
+            #     spawn=sim_utils.MultiUsdFileCfg(
+            #         usd_path=[
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
+            #         ],
+            #         random_choice=True,
+            #         scale=(1.0,1.0,1.0),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #             rigid_body_enabled=True,
+            #             solver_position_iteration_count=255,
+            #         ),
+            #     ),
                 
-                init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.6,-0.105,0.78),
-                    rot= (1.0,0.0,0.0,0.0)
-                )
-            ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.6,-0.105,0.78),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
 
-            "obstacle2" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Obstacle2",
-                spawn=sim_utils.MultiUsdFileCfg(
-                    usd_path=[
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
-                    ],
-                    random_choice=True,
-                    scale=(1.0,1.0,1.0),
-                    rigid_props=RigidBodyPropertiesCfg(
-                        rigid_body_enabled=True,
-                        solver_position_iteration_count=255,
-                    ),
-                ),
+            # "obstacle2" : RigidObjectCfg(
+            #     prim_path="/World/envs/env_[0-9]+/Obstacle2",
+            #     spawn=sim_utils.MultiUsdFileCfg(
+            #         usd_path=[
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A4V1/usd/A4V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A5V1/usd/A5V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A6V1/usd/A6V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A10V1/usd/A10.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A18V2/usd/A18V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/A38V1/usd/A38V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B19V2/usd/B19V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B23V2/usd/B23.1.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/B31V2/usd/B31V2const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C7V1/usd/C7V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C16V1/usd/C16V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/C21V1/usd/C21V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/E18V1/usd/E18V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F10V1/usd/F10V1const.usd",
+            #             PSILAB_USD_ASSET_DIR + "/rigid_objects/F16V2/usd/F16V2const.usd",
+            #         ],
+            #         random_choice=True,
+            #         scale=(1.0,1.0,1.0),
+            #         rigid_props=RigidBodyPropertiesCfg(
+            #             rigid_body_enabled=True,
+            #             solver_position_iteration_count=255,
+            #         ),
+            #     ),
                 
-                init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.6,-0.105,0.78),
-                    rot= (1.0,0.0,0.0,0.0)
-                )
-            ),
+            #     init_state=RigidObjectCfg.InitialStateCfg(
+            #         pos=(0.6,-0.105,0.78),
+            #         rot= (1.0,0.0,0.0,0.0)
+            #     )
+            # ),
 
         },
         
@@ -401,48 +402,9 @@ EMPTY_SCENE_CFG = SceneCfg(
                     scale=(0.01, 0.01, 0.01),
                 ),
 
-                # 10 个点
-                "point_cloud1": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud2": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud3": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud4": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud5": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud6": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud7": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud8": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud9": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
-                "point_cloud10": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                )
+
             },
+
         ),
 
         random = RandomCfg(
@@ -458,18 +420,6 @@ EMPTY_SCENE_CFG = SceneCfg(
                     position_list=None,
                     orientation_list=None,
                     material_cfg= None
-                    # material_cfg= MaterialRandomCfg(
-                    #     enable_random=True,
-                    #     shader_path="/World/envs/env_[0-9]+/Target/Looks/material/shader",
-                    #     random_type="range",
-                    #     material_type="color",
-                    #     color_range=[
-                    #         [0,0,0],
-                    #         [255,255,255] # type: ignore
-                    #     ],
-                    #     color_list=[], # type: ignore
-                    #     texture_list=[],
-                    # )
                 ),
                 "obstacle1": RigidRandomCfg(
                     random_type="range",
