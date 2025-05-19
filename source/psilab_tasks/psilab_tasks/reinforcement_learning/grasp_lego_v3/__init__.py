@@ -7,9 +7,9 @@ from . import scenes
 # Register Gym environments.
 ##
 
-# Psi-RL-Grasp-Lego-v1 use Psi AWH 01 as robot
+# Psi-RL-Grasp-Lego-v1 use Psi DC 01 as robot, lego is 1x1,1x2,1x3 
 gym.register(
-    id="Psi-RL-Grasp-Lego-v1",
+    id="Psi-RL-Grasp-Lego-v3",
     entry_point=f"{__name__}.grasp_lego_env:GraspLegoEnv",
     disable_env_checker=True,
     kwargs={

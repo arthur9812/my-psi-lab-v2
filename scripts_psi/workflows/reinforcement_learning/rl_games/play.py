@@ -16,7 +16,7 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--checkpoint", type=str, default="/home/admin01/Work/02-PsiLab/psi-lab-v2/logs/rl_games/grasp_lego/2025-04-24_08-02-55/nn/grasp_lego.pth", help="Path to model checkpoint.")
+parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
 parser.add_argument(
     "--use_last_checkpoint",
     action="store_false",
@@ -27,6 +27,7 @@ parser.add_argument(
 parser.add_argument("--seed", type=int, default=42, help="Seed used for the environment")
 parser.add_argument("--enable_wandb", action="store_true", default=False, help="Whether update data to wandb or not.")
 parser.add_argument("--enable_json", action="store_true", default=False, help="Whether create scene from json or not.")
+parser.add_argument("--scene", type=str, default=None, help="Scene.")
 parser.add_argument("--json_file", type=str, default=None, help="Scene json file.")
 parser.add_argument("--enable_output", action="store_true", default=False, help="Whether output data to hdf5 files or not.")
 parser.add_argument("--output_folder", type=str, default=None, help="Hdf5 files folder.")
@@ -103,6 +104,7 @@ def main():
     env_cfg.scene = parse_scene_cfg(
         args_cli.task, 
         args_cli.enable_json,
+        args_cli.scene,
         args_cli.json_file,
         args_cli.num_envs,
     )

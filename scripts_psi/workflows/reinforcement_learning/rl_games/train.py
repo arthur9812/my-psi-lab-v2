@@ -27,6 +27,7 @@ parser.add_argument("--height", type=int, default=1080, help="Height of the view
 # add argparse arguments from Psi
 parser.add_argument("--enable_wandb", action="store_true", default=False, help="Whether update data to wandb or not.")
 parser.add_argument("--enable_json", action="store_true", default=False, help="Whether create scene from json or not.")
+parser.add_argument("--scene", type=str, default=None, help="Scene.")
 parser.add_argument("--json_file", type=str, default=None, help="Scene json file.")
 parser.add_argument("--enable_output", action="store_true", default=False, help="Whether output data to hdf5 files or not.")
 parser.add_argument("--output_folder", type=str, default=None, help="Hdf5 files folder.")
@@ -97,6 +98,7 @@ env_cfg = parse_rl_env_cfg(
 env_cfg.scene = parse_scene_cfg(
     args_cli.task, 
     args_cli.enable_json,
+    args_cli.scene,
     args_cli.json_file,
     args_cli.num_envs,
 )

@@ -60,9 +60,9 @@ class GraspLegoEnvCfg(RLEnvCfg):
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
             gpu_max_rigid_patch_count = 4096 * 4096,
-            gpu_collision_stack_size = 1100000000,
+            gpu_collision_stack_size = 2100000000,
             gpu_found_lost_pairs_capacity = 137401003,
-            # gpu_total_aggregate_pairs_capacity=5196400
+            gpu_total_aggregate_pairs_capacity=5196400
 
         ),
         render=RenderCfg(),

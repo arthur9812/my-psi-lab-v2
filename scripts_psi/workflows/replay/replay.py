@@ -87,6 +87,7 @@ env_cfg = parse_rp_env_cfg(
 env_cfg.scene = parse_scene_cfg(
     args_cli.task, 
     True,
+    None,
     args_cli.json_file,
     1,
 )

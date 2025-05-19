@@ -36,7 +36,7 @@ from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
 from psilab.assets.robot_base_cfg import RobotBaseCfg
 from isaaclab.assets.articulation import ArticulationCfg
 
-EMPTY_SCENE_CFG = SceneCfg(
+SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
         env_spacing=4.0, 

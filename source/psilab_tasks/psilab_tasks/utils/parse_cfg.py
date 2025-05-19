@@ -23,17 +23,20 @@ from psilab.envs.rp_env_cfg import RPEnvCfg
 def parse_scene_cfg(
         task_name: str,
         enable_json: bool,
+        scene_config: str | None = None,
         json_file: str | None = None,
         num_envs: int | None = None)->SceneCfg:
 
     # get scene config from json while "enable_json" is True
     if enable_json:
-        
         # get scene config accordding to "scene_cfg_entry_point" while "scene_file" is None
         if json_file is None:
+            # scene_cfg_entry_point = gym.spec(task_name).kwargs.get("scene_cfg_entry_point")
+            # # resolve path to the scene config location
+            # mod_name, file_name = scene_cfg_entry_point.split(":") # type: ignore
             scene_cfg_entry_point = gym.spec(task_name).kwargs.get("scene_cfg_entry_point")
-            # resolve path to the scene config location
-            mod_name, file_name = scene_cfg_entry_point.split(":") # type: ignore
+            mod_name = scene_cfg_entry_point # type: ignore
+            file_name = scene_name.split(":")[1] + ".json" # type: ignore
             mod_path = os.path.dirname(importlib.import_module(mod_name).__file__) # type: ignore
             json_file = os.path.join(mod_path, file_name)
         # get
@@ -43,6 +46,10 @@ def parse_scene_cfg(
     else:
         scene_cfg_entry_point = gym.spec(task_name).kwargs.get("scene_cfg_entry_point")
         mod_name, attr_name = scene_cfg_entry_point.split(":") # type: ignore
+        if scene_config is not None:
+            mod_name = mod_name.rsplit(".",1)[0] + "." + scene_config.split(":")[0]
+            attr_name = scene_config.split(":")[1]
+        #
         mod = importlib.import_module(mod_name)
         scene = getattr(mod, attr_name)
     #

@@ -32,11 +32,11 @@ from isaaclab.assets import (
 from psilab import PSILAB_USD_ASSET_DIR
 from psilab.configs.robots.psi_awh_01 import PSI_AWH_01_CFG
 from psilab.scene.sence_cfg import SceneCfg
-from psilab.random.random_cfg import RandomCfg,RigidRandomCfg
+from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
 from psilab.assets.robot_base_cfg import RobotBaseCfg
 from isaaclab.assets.articulation import ArticulationCfg
 
-EMPTY_SCENE_CFG = SceneCfg(
+SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
         env_spacing=4.0, 
@@ -59,54 +59,95 @@ EMPTY_SCENE_CFG = SceneCfg(
             "robot" : RobotBaseCfg(
                 prim_path = "/World/envs/env_[0-9]+/Robot",
                 spawn = sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_AWH_01/Version_4.0/PsiRobot_AWH_01_Left.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
+                    activate_contact_sensors = True,
+
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                        enabled_self_collisions=False,
+                        enabled_self_collisions=True,
                     ),
                     rigid_props=RigidBodyPropertiesCfg(
                         solver_position_iteration_count=255,
                     )
                 ),
                 init_state=ArticulationCfg.InitialStateCfg(
-                    pos=(-0.3, 0.0, 0.6),
+                    pos=(0.0, 0.0, 0.0),
                     rot=(1.0,0.0,0.0,0.0),
                     joint_pos={
-                        "joint_rev_link1": 0.0,
-                        "joint_rev_link2": 0.45,
-                        "joint_rev_link3": 0.0,
-                        "joint_rev_link4": 1.78,
-                        "joint_rev_link5": 0.0,
-                        "joint_rev_link6": -0.5,
-                        "joint_rev_link7": -2.54,
+                        "arm1_joint_link1": -0.24,
+                        "arm1_joint_link2": -0.64,
+                        "arm1_joint_link3": -1.52,
+                        "arm1_joint_link4": -0.81,
+                        "arm1_joint_link5": 0.30,
+                        "arm1_joint_link6": -1.03,
+                        "arm1_joint_link7": 1.35,
+                        # "arm2_joint_link1": 0.24,
+                        # "arm2_joint_link2": -0.64,
+                        # "arm2_joint_link3": 1.52,
+                        # "arm2_joint_link4": -0.81,
+                        # "arm2_joint_link5": -0.30,
+                        # "arm2_joint_link6": -1.03,
+                        # "arm2_joint_link7": -0.36,
+                        "arm2_joint_link1": 0.36939895,
+                        "arm2_joint_link2": -1.42726047,
+                        "arm2_joint_link3": 0.32529447,
+                        "arm2_joint_link4": -0.78829542,
+                        "arm2_joint_link5": -1.78686804,
+                        "arm2_joint_link6": 0.85681702,
+                        "arm2_joint_link7": 2.33696087,
                         "hand1_joint_link_1_1":0.0,
-                        "hand1_joint_link_2_1":3.10,
-                        "hand1_joint_link_3_1":3.06,
-                        "hand1_joint_link_4_1":3.07,
-                        "hand1_joint_link_5_1":3.04,
                         "hand1_joint_link_1_2":0.63,
-                        "hand1_joint_link_2_2":1.56,
-                        "hand1_joint_link_3_2":1.56,
-                        "hand1_joint_link_4_2":1.56,
-                        "hand1_joint_link_5_2":1.56,
                         "hand1_joint_link_1_3":0.03,
+                        "hand1_joint_link_2_1":3.10,
+                        "hand1_joint_link_2_2":1.56,
+                        "hand1_joint_link_3_1":3.06,
+                        "hand1_joint_link_3_2":1.56,
+                        "hand1_joint_link_4_1":3.06,
+                        "hand1_joint_link_4_2":1.56,
+                        "hand1_joint_link_5_1":3.04,
+                        "hand1_joint_link_5_2":1.56,
+                        "hand2_joint_link_1_1":0.0,
+                        "hand2_joint_link_1_2":0.64,
+                        "hand2_joint_link_1_3":0.03,
+                        "hand2_joint_link_2_1":3.11,
+                        "hand2_joint_link_2_2":1.56,
+                        "hand2_joint_link_3_1":3.06,
+                        "hand2_joint_link_3_2":1.56,
+                        "hand2_joint_link_4_1":3.08,
+                        "hand2_joint_link_4_2":1.56,
+                        "hand2_joint_link_5_1":3.05,
+                        "hand2_joint_link_5_2":1.56,
                     }
                 ),
                                     
                 actuators={
-                    "arm": ImplicitActuatorCfg(
+                    "arm1": ImplicitActuatorCfg(
                         joint_names_expr=[
-                            "joint_rev_link1",
-                            "joint_rev_link2",
-                            "joint_rev_link3",
-                            "joint_rev_link4",
-                            "joint_rev_link5",
-                            "joint_rev_link6",
-                            "joint_rev_link7",
-                        ],
+                            "arm1_joint_link1",
+                            "arm1_joint_link2",
+                            "arm1_joint_link3",
+                            "arm1_joint_link4",
+                            "arm1_joint_link5",
+                            "arm1_joint_link6",
+                            "arm1_joint_link7",
+                            ],
+                        stiffness=None,
+                        damping=None,
+
+                    ),
+                    "arm2": ImplicitActuatorCfg(
+                        joint_names_expr=[
+                            "arm2_joint_link1",
+                            "arm2_joint_link2",
+                            "arm2_joint_link3",
+                            "arm2_joint_link4",
+                            "arm2_joint_link5",
+                            "arm2_joint_link6",
+                            "arm2_joint_link7",
+                            ],
                         stiffness=None,
                         damping=None,
                     ),
-                    "hand": ImplicitActuatorCfg(
+                    "hand1": ImplicitActuatorCfg(
                         joint_names_expr=[
                             "hand1_joint_link_1_1",
                             "hand1_joint_link_2_1",
@@ -118,28 +159,57 @@ EMPTY_SCENE_CFG = SceneCfg(
                             "hand1_joint_link_3_2",
                             "hand1_joint_link_4_2",
                             "hand1_joint_link_5_2",
-                            "hand1_joint_link_1_3",
-                        ],
+                            "hand1_joint_link_1_3"],
                         stiffness=None,
                         damping=None,
+
+                    ),
+                    "hand2": ImplicitActuatorCfg(
+                        joint_names_expr=[
+                            "hand2_joint_link_1_1",
+                            "hand2_joint_link_2_1",
+                            "hand2_joint_link_3_1",
+                            "hand2_joint_link_4_1",
+                            "hand2_joint_link_5_1",
+                            "hand2_joint_link_1_2",
+                            "hand2_joint_link_2_2",
+                            "hand2_joint_link_3_2",
+                            "hand2_joint_link_4_2",
+                            "hand2_joint_link_5_2",
+                            "hand2_joint_link_1_3"],
+                        stiffness=None,
+                        damping=None,
+
                     ),
                 },
                 diff_ik_controllers = {},
                 eef_links={
-                    "arm":"link7_left",
+                    "arm1":"arm1_link7",
+                    "arm2":"arm2_link7"
                 },
                 cameras = {},
                 tiled_cameras={
-                    "wrist_camera": TiledCameraCfg(
-                        prim_path="/World/envs/env_[0-9]+/Robot/camera/camera",
-                        offset = TiledCameraCfg.OffsetCfg(
-                            convention = "world"
-                        ),
+                   "base_camera": TiledCameraCfg(
+                        prim_path="/World/envs/env_[0-9]+/Robot/base_camera_rgb/base_camera_rgb",
                         data_types=["rgb"],
                         width=640,
                         height=480,
                         spawn=None,
-                    )
+                    ),
+                    # "arm1_camera": TiledCameraCfg(
+                    #     prim_path="/World/envs/env_[0-9]+/Robot/arm1_camera_rgb/arm1_camera_rgb",
+                    #     data_types=["rgb"],
+                    #     width=224,
+                    #     height=224,
+                    #     spawn=None,
+                    # ),
+                    "arm2_camera": TiledCameraCfg(
+                        prim_path="/World/envs/env_[0-9]+/Robot/arm2_camera_rgb/arm2_camera_rgb",
+                        data_types=["rgb"],
+                        width=640,
+                        height=480,
+                        spawn=None,
+                    ),
                 }
     
             )
@@ -166,37 +236,41 @@ EMPTY_SCENE_CFG = SceneCfg(
             "table" : RigidObjectCfg(
                     prim_path="/World/envs/env_[0-9]+/Table", 
                     spawn=sim_utils.UsdFileCfg(
-                        usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/table/table_cube.usd",
-                        scale=(1.5, 1.0, 0.6),
+                        usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/table/table_1157.usd",
+                        scale=(2.0, 2.0, 1.8),
                         visual_material=None,
                         rigid_props=RigidBodyPropertiesCfg(
                             kinematic_enabled = True,
+                            solver_position_iteration_count=255
                         )
                     ),
                     init_state = RigidObjectCfg.InitialStateCfg(
-                        pos=(0.0, 0.0, 0.0), 
+                        pos=(0.65, 0.0, 0.0), 
                         rot= (1.0, 0.0, 0.0, 0.0)
                     )
                 ),
 
-            "lego" : RigidObjectCfg(
-                prim_path="/World/envs/env_[0-9]+/Lego",
-                spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
+            "target" : RigidObjectCfg(
+                prim_path="/World/envs/env_[0-9]+/Target",
+                spawn=sim_utils.MultiUsdFileCfg(
+                    usd_path=[
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
+                    ],
+                    random_choice=False,
                     scale=(1.0,1.0,1.0),
-                    visual_material=sim_utils.PreviewSurfaceCfg(
-                        diffuse_color=(0.80, 0.64, 0.20)
-                    ),
+                    visual_material=None,
                     mass_props=MassPropertiesCfg(
                         mass = 0.01
                     ),
                     rigid_props=RigidBodyPropertiesCfg(
                         solver_position_iteration_count=255,
                     ),
-            
+                    semantic_tags=[
+                        ("class", "target")
+                    ]
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
-                    pos=(0.2,0,0.7),
+                    pos=(0.5,-0.105,0.8),
                     rot= (1,0,0,0)
                 )
             ),
@@ -207,36 +281,9 @@ EMPTY_SCENE_CFG = SceneCfg(
         deformable_objects_cfg ={},
         
         # camera sensor
-        cameras_cfg={
-            
-        },
+        cameras_cfg={},
         
-        tiled_cameras_cfg = {
-            "top_camera": TiledCameraCfg(
-                prim_path="/World/envs/env_[0-9]+/top_camera",
-                offset = TiledCameraCfg.OffsetCfg(
-                    pos = (0.2,0.0,1.6),
-                    rot = (0.707,0.0,0.707,0.0),
-                    convention = "world"
-                ),
-                data_types=["rgb"],
-                width=640,
-                height=480,
-                spawn=PinholeCameraCfg(),
-            ),
-            "front_camera": TiledCameraCfg(
-                prim_path="/World/envs/env_[0-9]+/front_camera",
-                offset = TiledCameraCfg.OffsetCfg(
-                    pos = (1.0,0.0,0.7),
-                    rot = (0.0,0.0,0.0,1.0),
-                    convention = "world"
-                ),
-                data_types=["rgb"],
-                width=640,
-                height=480,
-                spawn=PinholeCameraCfg(),
-            ),
-        },
+        tiled_cameras_cfg = {},
 
         # contact sensor
         contact_sensors_cfg={},
@@ -283,14 +330,28 @@ EMPTY_SCENE_CFG = SceneCfg(
             global_light_cfg = None,
             local_lights_cfg = None,
             rigid_objects_cfg = {
-                "lego": RigidRandomCfg(
+                "target": RigidRandomCfg(
                     random_type="range",
                     random_position=True,
                     random_orientation=True,
-                    random_material=False,
-                    position_range=[0.1,0.1,0.0],
+                    random_material=True,
+                    position_range=[0.12,0.155,0.0],
                     position_list=None,
-                    orientation_list=None
+                    orientation_list=None,
+                    material_cfg=MaterialRandomCfg(
+                        enable_random=True,
+                        shader_path="/World/envs/env_[0-9]+/Target/Looks/material/shader",
+                        random_type="range",
+                        material_type="color",
+                        color_range=[
+                            [0,0,0],
+                            [255,255,255] # type: ignore
+                        ],
+                        color_list=[], # type: ignore,
+                        texture_list=[]
+
+
+                    )
                 )
             },
 

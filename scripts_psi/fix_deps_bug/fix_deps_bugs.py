@@ -27,5 +27,5 @@ dep_numba_path = os.path.join(conda_envs_dir,args_cli.conda_env,"lib/python3.10/
 if os.path.exists(os.path.join(dep_numba_path,"__init__.py")):
     shutil.copyfile(
         os.path.join(os.path.dirname(__file__),"numba-0.57.0/__init__.py"), 
-        os.path.join(dep_trimesh_path,"__init__.py"))
+        os.path.join(dep_numba_path,"__init__.py"))
 

@@ -36,10 +36,10 @@ from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
 from psilab.assets.robot_base_cfg import RobotBaseCfg
 from isaaclab.assets.articulation import ArticulationCfg
 
-EMPTY_SCENE_CFG = SceneCfg(
+SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
-        env_spacing=4.0, 
+        env_spacing=10.0, 
         replicate_physics=True,
         
         # global light
@@ -218,14 +218,14 @@ EMPTY_SCENE_CFG = SceneCfg(
         
         # static object
         static_objects_cfg = {
-            "ground" : AssetBaseCfg(
-                prim_path="/World/envs/env_[0-9]+/Ground", 
+            "room" : AssetBaseCfg(
+                prim_path="/World/envs/env_[0-9]+/Room", 
                 spawn=sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/envs/Grid/default_environment.usd"
+                    usd_path=PSILAB_USD_ASSET_DIR + "/envs/psi_garage_2_obj/GarageScene.usd"
                 ),
                 init_state = RigidObjectCfg.InitialStateCfg(
                     pos=(0.0, 0.0, 0.0), 
-                    rot= (1.0,0.0, 0.0, 0.0)
+                    rot= (0.707, 0.707, 0.0, 0.0)
                 )
             )
         },
@@ -237,7 +237,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                     prim_path="/World/envs/env_[0-9]+/Table", 
                     spawn=sim_utils.UsdFileCfg(
                         usd_path=PSILAB_USD_ASSET_DIR + "/rigid_objects/table/table_1157.usd",
-                        scale=(2.0, 2.0, 1.8),
+                        scale=(1.0, 1.0, 1.8),
                         visual_material=None,
                         rigid_props=RigidBodyPropertiesCfg(
                             kinematic_enabled = True,
@@ -334,7 +334,7 @@ EMPTY_SCENE_CFG = SceneCfg(
                     random_type="range",
                     random_position=True,
                     random_orientation=True,
-                    random_material=True,
+                    random_material=False,
                     position_range=[0.12,0.155,0.0],
                     position_list=None,
                     orientation_list=None,
@@ -347,10 +347,8 @@ EMPTY_SCENE_CFG = SceneCfg(
                             [0,0,0],
                             [255,255,255] # type: ignore
                         ],
-                        color_list=[], # type: ignore,
+                        color_list=[], # type: ignore
                         texture_list=[]
-
-
                     )
                 )
             },

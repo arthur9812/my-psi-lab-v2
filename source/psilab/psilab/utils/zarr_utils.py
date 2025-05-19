@@ -631,6 +631,7 @@ if __name__ == "__main__":
 
         episode = dict()
         episode['timestamps'] = h5_file["timestamps"] # type: ignore
+        # aa = h5_file["robots"]["robot"]["action"][::4,[1,3,5,7,9,11,13,19,20,21,22,23,29]]
         # episode['action'] = h5_file["robots"]["robot"]["actions"][:,[1,3,5,7,9,11,13,19,20,21,22,23,29]] # type: ignore
         episode['action'] = h5_file["robots"]["robot"]["action"][:,[1,3,5,7,9,11,13,19,20,21,22,23,29]] # type: ignore
         episode['arm2_pos'] = h5_file["robots"]["robot"]["arm2_pos"] # type: ignore

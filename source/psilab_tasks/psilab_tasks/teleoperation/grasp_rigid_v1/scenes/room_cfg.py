@@ -16,7 +16,7 @@ from isaaclab.actuators import ImplicitActuatorCfg
 from isaaclab.assets import ArticulationCfg
 from isaaclab.sensors import ContactSensorCfg
 from isaaclab.sensors.camera import CameraCfg,TiledCameraCfg
-from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg,MassPropertiesCfg
+from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.assets import (
     AssetBaseCfg,
     RigidObjectCfg,
@@ -27,12 +27,13 @@ from isaaclab.assets import (
 from psilab import PSILAB_USD_ASSET_DIR,PSILAB_TEXTURE_ASSET_DIR
 from psilab.configs.robots.psi_dc_01 import PSI_DC_01_CFG
 from psilab.scene.sence_cfg import SceneCfg
-from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
 from psilab.assets.robot_base_cfg import RobotBaseCfg
+from psilab.controllers.differential_ik_cfg import DiffIKControllerCfg
+from psilab.random.random_cfg import RandomCfg,RigidRandomCfg,MaterialRandomCfg
 
 
 
-ROOM_SCENE_CFG = SceneCfg(
+SCENE_CFG = SceneCfg(
         
         num_envs = 1, 
         env_spacing=4.0, 
@@ -48,7 +49,13 @@ ROOM_SCENE_CFG = SceneCfg(
         ),
 
         # local light
-        local_lights_cfg={},
+        local_lights_cfg={
+            # TODO: add light api
+            # "Rect_Lights" : AssetBaseCfg(
+            #     prim_path="/World/Lights/RectLight_.*", 
+            #     spawn=None
+            # )
+        },
 
         # robot
         robots_cfg = {
@@ -59,7 +66,7 @@ ROOM_SCENE_CFG = SceneCfg(
                     activate_contact_sensors = True,
 
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                        enabled_self_collisions=False,
+                        enabled_self_collisions=True,
                     ),
                     rigid_props=RigidBodyPropertiesCfg(
                         solver_position_iteration_count=255,
@@ -76,20 +83,13 @@ ROOM_SCENE_CFG = SceneCfg(
                         "arm1_joint_link5": 0.30,
                         "arm1_joint_link6": -1.03,
                         "arm1_joint_link7": 1.35,
-                        # "arm2_joint_link1": 0.24,
-                        # "arm2_joint_link2": -0.64,
-                        # "arm2_joint_link3": 1.52,
-                        # "arm2_joint_link4": -0.81,
-                        # "arm2_joint_link5": -0.30,
-                        # "arm2_joint_link6": -1.03,
-                        # "arm2_joint_link7": -0.36,
-                        "arm2_joint_link1": -0.7081,
-                        "arm2_joint_link2": -2.260,
-                        "arm2_joint_link3": 1.1912,
-                        "arm2_joint_link4": -1.9471,
-                        "arm2_joint_link5": -0.8578,
-                        "arm2_joint_link6": -0.1248,
-                        "arm2_joint_link7": -1.4305,
+                        "arm2_joint_link1": 0.24,
+                        "arm2_joint_link2": -0.64,
+                        "arm2_joint_link3": 1.52,
+                        "arm2_joint_link4": -0.81,
+                        "arm2_joint_link5": -0.30,
+                        "arm2_joint_link6": -1.03,
+                        "arm2_joint_link7": -0.36,
                         "hand1_joint_link_1_1":0.0,
                         "hand1_joint_link_1_2":0.63,
                         "hand1_joint_link_1_3":0.03,
@@ -145,6 +145,23 @@ ROOM_SCENE_CFG = SceneCfg(
                     ),
                     "hand1": ImplicitActuatorCfg(
                         joint_names_expr=[
+                            "hand1_joint_link_1_1",
+                            "hand1_joint_link_2_1",
+                            "hand1_joint_link_3_1",
+                            "hand1_joint_link_4_1",
+                            "hand1_joint_link_5_1",
+                            "hand1_joint_link_1_2",
+                            "hand1_joint_link_2_2",
+                            "hand1_joint_link_3_2",
+                            "hand1_joint_link_4_2",
+                            "hand1_joint_link_5_2",
+                            "hand1_joint_link_1_3"],
+                        stiffness=None,
+                        damping=None,
+
+                    ),
+                    "hand2": ImplicitActuatorCfg(
+                        joint_names_expr=[
                             "hand2_joint_link_1_1",
                             "hand2_joint_link_2_1",
                             "hand2_joint_link_3_1",
@@ -160,25 +177,40 @@ ROOM_SCENE_CFG = SceneCfg(
                         damping=None,
 
                     ),
-                    "hand2": ImplicitActuatorCfg(
-                        joint_names_expr=[
-                            "hand2_joint_link_1_1",
-                            "hand2_joint_link_1_2",
-                            "hand2_joint_link_1_3",
-                            "hand2_joint_link_2_1",
-                            "hand2_joint_link_2_2",
-                            "hand2_joint_link_3_1",
-                            "hand2_joint_link_3_2",
-                            "hand2_joint_link_4_1",
-                            "hand2_joint_link_4_2",
-                            "hand2_joint_link_5_1",
-                            "hand2_joint_link_5_2"],
-                        stiffness=None,
-                        damping=None,
-
-                    ),
                 },
-                diff_ik_controllers = {},
+                diff_ik_controllers = {
+                    "arm1":DiffIKControllerCfg(
+                        command_type="pose", 
+                        use_relative_mode=False, 
+                        ik_method="dls",
+                        joint_name=[
+                            "arm1_joint_link1",
+                            "arm1_joint_link2",
+                            "arm1_joint_link3",
+                            "arm1_joint_link4",
+                            "arm1_joint_link5",
+                            "arm1_joint_link6",
+                            "arm1_joint_link7"
+                        ],
+                        eef_link_name="arm1_link7"
+                    ),
+                    "arm2":DiffIKControllerCfg(
+                        command_type="pose", 
+                        use_relative_mode=False, 
+                        ik_method="dls",
+                        joint_name=[
+                            "arm2_joint_link1",
+                            "arm2_joint_link2",
+                            "arm2_joint_link3",
+                            "arm2_joint_link4",
+                            "arm2_joint_link5",
+                            "arm2_joint_link6",
+                            "arm2_joint_link7"
+                        ],
+                        eef_link_name="arm2_link7"
+                    ),
+    
+                },
                 eef_links={
                     "arm1":"arm1_link7",
                     "arm2":"arm2_link7"
@@ -207,9 +239,8 @@ ROOM_SCENE_CFG = SceneCfg(
                         spawn=None,
                     ),
                 }
-
-            )
             
+            )
         },
         
         # static object
@@ -253,15 +284,11 @@ ROOM_SCENE_CFG = SceneCfg(
                     visual_material=None,
                     rigid_props=RigidBodyPropertiesCfg(
                             solver_position_iteration_count=255
-                    ),
-                    mass_props=MassPropertiesCfg(
-                        mass=1.0
-                    )
+                        )
                 ),
                 init_state=RigidObjectCfg.InitialStateCfg(
                     pos=(0.0,0.0,0.85),
                     rot= (0.707, 0.707, 0.0, 0.0)
-
                 )
             ),
           
@@ -271,11 +298,34 @@ ROOM_SCENE_CFG = SceneCfg(
         deformable_objects_cfg ={},
         
         # camera sensor
-        cameras_cfg={},
+        cameras_cfg={
+            "eye_left": CameraCfg(
+                height=720,
+                width=1280,
+                data_types=['rgb'],
+                prim_path = "/World/CameraLeft",
+                spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
+                offset = CameraCfg().OffsetCfg(
+                    pos = (-0.3,0.033,1.6),
+                    rot = (1,0,0,0),
+                    convention='world')
+            ),
+            "eye_right": CameraCfg(
+                height=720,
+                width=1280,
+                data_types=['rgb'],
+                prim_path = "/World/CameraRight",
+                spawn=sim_utils.PinholeCameraCfg(lock_camera=False),
+                offset = CameraCfg().OffsetCfg(
+                    pos = (-0.3,-0.033,1.6),
+                    rot = (1,0,0,0),
+                    convention='world')
+            ),
+        },
         
         # tiled camera sensor
         tiled_cameras_cfg={},
-        
+
         # contact sensor
         contact_sensors_cfg={
             "left_hand": ContactSensorCfg(
@@ -296,7 +346,7 @@ ROOM_SCENE_CFG = SceneCfg(
 
         # debug marker
         marker_cfg = None,
-        # 
+
         random = RandomCfg(
             global_light_cfg = None,
             local_lights_cfg = None,
@@ -341,11 +391,10 @@ ROOM_SCENE_CFG = SceneCfg(
                     )
                 )
             },
-            #
 
 
-        ),
-        
+        )
+
     )
 
 

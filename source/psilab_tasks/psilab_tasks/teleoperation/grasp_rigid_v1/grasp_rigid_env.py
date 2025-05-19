@@ -152,6 +152,8 @@ class GraspRigidEnv(TPEnv):
         #
         # pass
         self._timer = Timer()
+        # variables used to store contact flag
+        self._has_contacted = False
        
    
     def step(self,actions):
@@ -185,12 +187,9 @@ class GraspRigidEnv(TPEnv):
         # Automatically determine success or failure after recording
         if self._vuer.bRecording:
             pass
+            failed,self._has_contacted = eval_fail(self._robot,self._target,contact_sensors, self._has_contacted) # type: ignore
             # 失败判断
-            if eval_fail(
-                self._robot,
-                self._target,
-                contact_sensors, # type: ignore
-                ): 
+            if failed: 
                 print("Failed")
                 self.reset()
 
