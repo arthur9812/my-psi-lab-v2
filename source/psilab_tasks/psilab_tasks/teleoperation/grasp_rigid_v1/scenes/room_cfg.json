@@ -38,7 +38,7 @@
             "prim_path": "/World/Robot",
             "spawn": {
                 "func": "isaaclab.sim.spawners.from_files.from_files:spawn_from_usd",
-                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
+                "usd_path": "/home/admin01/Work/02-PsiLab/psi-lab-v2/assets/usd/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned_Flattened.usd",
                 "activate_contact_sensors": true,
                 "articulation_props": {
                     "enabled_self_collisions": true
@@ -420,21 +420,125 @@
     },
     "tiled_cameras_cfg": {},
     "contact_sensors_cfg": {
-        "left_hand": {
+        "hand2_link_base": {
             "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
-            "prim_path": "/World/Robot/InspireHand_OY_Left/hand1_link_.*",
+            "prim_path": "/World/Robot/hand2_link_base",
             "update_period": 0.0,
             "history_length": 0,
             "debug_vis": false,
-            "filter_prim_paths_expr": []
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
         },
-        "right_hand": {
+        "hand2_link_1_1": {
             "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
-            "prim_path": "/World/Robot/InspireHand_OY_Right/hand2_link_.*",
+            "prim_path": "/World/Robot/hand2_link_1_1",
             "update_period": 0.0,
             "history_length": 0,
             "debug_vis": false,
-            "filter_prim_paths_expr": []
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_1_2": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_1_2",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_1_3": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_1_3",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_2_1": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_2_1",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_2_2": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_2_2",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_3_1": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_3_1",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_3_2": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_3_2",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_4_1": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_4_1",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_4_2": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_4_2",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_5_1": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_5_1",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
+        },
+        "hand2_link_5_2": {
+            "class_type": "isaaclab.sensors.contact_sensor.contact_sensor:ContactSensor",
+            "prim_path": "/World/Robot/hand2_link_5_2",
+            "update_period": 0.0,
+            "history_length": 0,
+            "debug_vis": false,
+            "filter_prim_paths_expr": [
+                "/World/Bottle"
+            ]
         }
     },
     "marker_cfg": null,

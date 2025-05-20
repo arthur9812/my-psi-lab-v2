@@ -14,57 +14,60 @@ from isaaclab.sensors import ContactSensor
 from psilab.assets.robot_base import RobotBase
 
 
-def eval_success(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,ContactSensor], grasp_height:float) -> bool:
+def eval_success(target: RigidObject, contact_sensors: dict[str,ContactSensor], grasp_height:float) -> torch.Tensor:
     """The evaluate of whether the grasp is successful. """
 
-    # 成功条件 = 成功条件1 and 成功条件2
-    # 成功条件1: target 在Z轴上升起的高度大于等于期望阈值
-    # 成功条件2: robot双手与target的接触力数量 >= 2
+    # compute the height lifted of target
+    height_lift = target.data.root_pos_w[:,2] - target.data.default_root_state[:,2]
 
-    # 计算升起高度
-    height_init = target.cfg.init_state.pos[2]
-    height_cur = target.data.root_pos_w[0][2]
-    height_lift = height_cur - height_init
-    # 计算接触力数量
-    contact_force_num =0
+    # get force number between target and robot in contact sensor
+    num_envs= target.data.default_root_state.shape[0]
+    contact_force_num = torch.zeros(num_envs, dtype=torch.int8,device=target.device)
     for sensor_name,contact_sensor in contact_sensors.items():
-        net_forces_w = contact_sensor.data.net_forces_w[0,:,:] # type: ignore
-        for index in range(net_forces_w.size()[0]):
-            if not net_forces_w[index].equal(torch.tensor([0.0,0.0,0.0],device="cuda:0")):
-                contact_force_num+=1
-        pass
-    # print(height_cur - height_init)
-    if height_lift >=grasp_height and contact_force_num>=2:
-        return True
+        forces = torch.sum(contact_sensor.data.net_forces_w, dim=[1,2]) # type: ignore
+        contact_force_num = torch.where(
+            forces>0.0,
+            contact_force_num+1,
+            contact_force_num
+        )
+    
+    # we thougt target and robot is contacting while force number is positive
+    contacting = contact_force_num>0 # type: ignore
 
-    return False
+    # grasp is success while target is lifted to desired height and is contacting with robot
+    bsuccessed = (height_lift>grasp_height) & contacting
+
+    print((height_lift>grasp_height))
+    return bsuccessed
 
 
-def eval_fail(robot: RobotBase, target: RigidObject, contact_sensors: dict[str,ContactSensor],has_contacted:bool) -> tuple[bool,bool]:
+def eval_fail(target: RigidObject, contact_sensors: dict[str,ContactSensor], has_contacted:torch.Tensor) -> tuple[torch.Tensor,torch.Tensor]:
     """The evaluate of whether the grasp is failed. """
 
 
-    # 失败条件 = 失败条件1 or 失败条件2
-    # 失败条件1：target在Z轴方向上速度不为0 and target与robot没有接触点
-    # 失败条件2：
-    # 获取目标速度
-    velocity_z = torch.round(target.data.root_link_state_w[0,9], decimals = 2)
-    # 计算接触力数量
-    contact_force_num = 0
+    # get velocity on Z-axis
+    velocity_z = torch.round(target.data.root_state_w[:,9], decimals = 2)
+    angle_velocity = torch.round(target.data.root_state_w[:,10:], decimals = 2)
+    # we thougt target is falling down while velocity on Z-axis is greater than 0.2m/s or angle velocity is greater than 5 deg/s
+    bfalling = (velocity_z<=-0.1) | (angle_velocity[:,0]>=2)| (angle_velocity[:,1]>=2)| (angle_velocity[:,2]>=2)
+
+    # get force number between target and robot in contact sensor
+    contact_force_num = torch.zeros(has_contacted.shape, dtype=torch.int8,device=has_contacted.device)
     for sensor_name,contact_sensor in contact_sensors.items():
-        net_forces_w = contact_sensor.data.net_forces_w[0,:,:] # type: ignore
-        for index in range(net_forces_w.size()[0]):
-            if not net_forces_w[index].equal(torch.tensor([0.0,0.0,0.0],device="cuda:0")):
-                contact_force_num+=1
-        pass
-
-    # print(f"Velocity on Z-Axis: {velocity_z}")
-    # print(f"Contact Force Num: {contact_force_num}")
-
-    contacted = True if contact_force_num>0 else False
-    has_contacted = has_contacted or contacted
-
-    if has_contacted and velocity_z <= -0.2 and contact_force_num==0:
-        return True,has_contacted
+        forces = torch.sum(contact_sensor.data.net_forces_w, dim=[1,2]) # type: ignore
+        contact_force_num = torch.where(
+            forces>0.0,
+            contact_force_num+1,
+            contact_force_num
+        )
     
-    return False,has_contacted
+    # we thougt target and robot is contacting while force number is positive
+    contacting = contact_force_num>0 # type: ignore
+
+    # grasp is failed while target is falling down from robot
+    bfailed = bfalling & has_contacted & (~contacting)
+    
+    # update contacted flags
+    has_contacted = has_contacted | contacting # type: ignore
+    
+    return bfailed,has_contacted

@@ -41,7 +41,7 @@ from isaaclab.utils.timer import Timer
 """ Psilab Modules  """ 
 from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.scene.sence import Scene
-from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env
+from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env,reset_data_buffer_muilt_env
 from psilab.utils.data_collect_utils import create_data_buffer,parse_data
 
 class RLEnv(gym.Env):
@@ -706,8 +706,14 @@ class RLEnv(gym.Env):
             # single env
                 self._data = create_data_buffer(self,self.cfg)
             elif self.scene.num_envs >1:
-                # multi env
-                self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+                if self.cfg.async_reset:
+                    if self._data is None:
+                        self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
+                    else:
+                        self._data = reset_data_buffer_muilt_env(self._data,self,self.cfg,env_ids=env_ids)
+                else:
+                    # multi env
+                    self._data = create_data_buffer_muilt_env(self,self.cfg,self.scene.num_envs)
             else:
                 raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
             # clear cuda cache

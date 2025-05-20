@@ -158,8 +158,8 @@ class GraspLegoEnv(RLEnv):
         # initialize wandb
         if self.cfg.enable_wandb: 
             self._wandb = WandbLog()
-            project = "GraspLegoTest"
-            name = "PsiLab_v2.0_RL_PPO" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
+            project = "PsiLab_v2.0_RL"
+            name = "GraspLego_v1_PPO" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
             self._wandb.init_wandb(project,name)
 
         # initialize Timer

@@ -75,17 +75,22 @@ class RobotBase(Articulation):
         """
         # reset articulation, which will reset actuator
         super().reset()
+
+        if env_ids is None:
+            env_ids = self._ALL_INDICES # type: ignore
+
         # reset all joint state and target to default state
-        self.set_joint_position_target(self.data.default_joint_pos.clone())
+        self.set_joint_position_target(self.data.default_joint_pos.clone()[env_ids,:],env_ids=env_ids)
         self.write_joint_state_to_sim(
-            position=self.data.default_joint_pos.clone(),
-            velocity=torch.zeros(self.num_joints,device=self.device)
+            position=self.data.default_joint_pos.clone()[env_ids,:],
+            velocity=torch.zeros((len(env_ids),self.num_joints),device=self.device), # type: ignore
+            env_ids=env_ids
         )
         self.write_data_to_sim()   
         # print(self.data.joint_pos_target[0,:])
         #
         for ik_name,ik_cfg in self.cfg.diff_ik_controllers.items():
-            self.ik_controllers[ik_name].reset(self)
+            self.ik_controllers[ik_name].reset(self,env_ids)
 
         # self.data.root_link_pos_w
  

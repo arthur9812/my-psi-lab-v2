@@ -11,6 +11,7 @@ import json
 import torch
 import os
 import numpy
+import copy
 """ IsaacLab Modules  """ 
 from isaaclab.utils.configclass import class_to_dict
 
@@ -212,6 +213,59 @@ def create_data_buffer_muilt_env(env, cfg, nums_env) -> dict :
                 #
                 data[f"env_{i}"]["extra"]["tiled_cameras"][camera_name+ "." + data_type]={}
                 
+    return data
+
+def reset_data_buffer_muilt_env(data: dict, env, cfg, env_ids: list[int]) -> dict :
+
+    for i in env_ids:
+        if f"env_{i}" in data.keys():
+            # reset robots
+            data[f"env_{i}"]["robots"] = {}
+            for robot_name,robot in env.scene.robots.items():
+                data[f"env_{i}"]["robots"][robot_name] = {}
+                # actions
+                data[f"env_{i}"]["robots"][robot_name]["action"] = []
+                # add actuators
+                for actuator_name in robot.actuators.keys():
+                    data[f"env_{i}"]["robots"][robot_name][actuator_name+"_pos"] = []
+                    data[f"env_{i}"]["robots"][robot_name][actuator_name+"_vel"] = []
+                # add eef state according to ik controllers
+                for eef_name in robot.eef_links.keys():
+                    data[f"env_{i}"]["robots"][robot_name][eef_name+"_eef_pose"] = []
+                    data[f"env_{i}"]["robots"][robot_name][eef_name+"_vel"] = []
+                # add cameras 
+                for camera_name,camera in robot.cameras.items():
+                    # multi-type
+                    for data_type in camera.cfg.data_types:
+                        data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type] = []
+                # add tiled cameras 
+                for camera_name,camera in robot.tiled_cameras.items():
+                    # multi-type
+                    for data_type in camera.cfg.data_types:
+                        data[f"env_{i}"]["robots"][robot_name][camera_name+ "." + data_type] = []
+                # add contact sensors
+                for contact_name in robot.cameras.keys():
+                    data[f"env_{i}"]["robots"][robot_name][contact_name] = []  
+            # add rigid object
+            data[f"env_{i}"]["rigid_objects"] = {}
+            for object_name in env.scene.rigid_objects.keys():
+                data[f"env_{i}"]["rigid_objects"][object_name]=[]
+            # add deformable object
+            data[f"env_{i}"]["deformable_objects"] = {}
+            for object_name in env.scene.deformable_objects.keys():
+                data[f"env_{i}"]["deformable_objects"][object_name]=[]
+            # add cameras
+            data[f"env_{i}"]["cameras"] = {}
+            for camera_name,camera in env.scene.cameras.items():
+                # multi-type
+                for data_type in camera.cfg.data_types:
+                    data[f"env_{i}"]["cameras"][camera_name+ "." + data_type] = []
+            # add tiled cameras
+            for camera_name,camera in env.scene.tiled_cameras.items():
+                # multi-type
+                for data_type in camera.cfg.data_types:
+                    data[f"env_{i}"]["cameras"][camera_name+ "." + data_type] = []
+            
     return data
 
 def parse_data(data: dict, env, cfg) -> dict :
@@ -467,7 +521,7 @@ def save_data(data: dict, cfg):
     json.dump(cfg_dict,json_file,indent=4) 
 
 def save_data_muilt_env(data: dict, cfg, nums_env:list):
-    
+    # data_temp = copy.deepcopy(data)
     # Only save data in env of which the index is in nums_env list
     key_pop = []
     for key in list(data.keys()):
@@ -476,10 +530,11 @@ def save_data_muilt_env(data: dict, cfg, nums_env:list):
                 key_pop.append(key)
     
     for key in key_pop:
-        data.pop(key)
+        data[key] = {}
 
-    if len(list(data.keys())) <= 1:
+    if len(key_pop) == cfg.scene.num_envs:
         return      
+    
     # 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"/{timestamp}_data.hdf5"
@@ -487,11 +542,11 @@ def save_data_muilt_env(data: dict, cfg, nums_env:list):
     if not os.path.exists(cfg.output_folder):
         os.makedirs(cfg.output_folder)
     h5_file = h5py.File(cfg.output_folder+filename, 'w') # type: ignore
-    # 
+    # hdf5
     data_cpu = dict_to_cpu(data)
     dict_to_h5(data_cpu,h5_file,"/")
     h5_file.close()
-    # pass
+    # json
     cfg_dict = class_to_dict(cfg.scene)
     filename = f"/{timestamp}_scene_config.json"
     json_file = open(cfg.output_folder+filename,'w') # type: ignore

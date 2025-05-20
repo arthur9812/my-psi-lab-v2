@@ -55,7 +55,7 @@ SCENE_CFG = SceneCfg(
             "robot" : RobotBaseCfg(
                 prim_path = "/World/Robot",
                 spawn = sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned_Flattened.usd",
                     activate_contact_sensors = True,
 
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -278,19 +278,89 @@ SCENE_CFG = SceneCfg(
         
         # contact sensor
         contact_sensors_cfg={
-            "left_hand": ContactSensorCfg(
-                prim_path="/World/Robot/InspireHand_OY_Left/hand1_link_.*",
+            "hand2_link_base": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_base",
                 update_period=0.0,
                 history_length=0,
                 debug_vis=False,
-                filter_prim_paths_expr=[],
+                filter_prim_paths_expr=["/World/Bottle"],
             ),
-            "right_hand": ContactSensorCfg(
-                prim_path="/World/Robot/InspireHand_OY_Right/hand2_link_.*",
+            "hand2_link_1_1": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_1_1",
                 update_period=0.0,
                 history_length=0,
                 debug_vis=False,
-                filter_prim_paths_expr=[],
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_1_2": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_1_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_1_3": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_1_3",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_2_1": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_2_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_2_2": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_2_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_3_1": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_3_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_3_2": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_3_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_4_1": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_4_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_4_2": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_4_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_5_1": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_5_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
+            ),
+            "hand2_link_5_2": ContactSensorCfg(
+                prim_path="/World/Robot/hand2_link_5_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/Bottle"],
             ),
         },
 

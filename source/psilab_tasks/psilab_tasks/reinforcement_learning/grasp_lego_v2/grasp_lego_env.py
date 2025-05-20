@@ -26,9 +26,8 @@ from psilab.envs.rl_env import RLEnv
 from psilab.envs.rl_env_cfg import RLEnvCfg
 from psilab.utils.wandb_utils import WandbLog
 from psilab.utils.timer_utils import Timer
-
 from psilab.utils.data_collect_utils import save_data,save_data_muilt_env
-
+from psilab.eval.grasp_rigid import eval_fail,eval_success
 
 @configclass
 class GraspLegoEnvCfg(RLEnvCfg):
@@ -55,12 +54,12 @@ class GraspLegoEnvCfg(RLEnvCfg):
         render_interval=decimation,
         physx = PhysxCfg(
             solver_type = 1, # 0: pgs, 1: tgs
-            max_position_iteration_count = 16,
+            max_position_iteration_count = 32,
             max_velocity_iteration_count = 0,
             bounce_threshold_velocity = 0.002,
             enable_ccd=True,
             gpu_max_rigid_patch_count = 4096 * 4096,
-            gpu_collision_stack_size = 1100000000,
+            gpu_collision_stack_size = 1600000000,
             gpu_found_lost_pairs_capacity = 137401003,
             # gpu_total_aggregate_pairs_capacity=5196400
 
@@ -90,6 +89,21 @@ class GraspLegoEnv(RLEnv):
         self._robot = self.scene.robots["robot"]
         self._target = self.scene.rigid_objects["target"]
         self._visualizer = self.scene.visualizer
+
+        self._contact_sensors = {}
+        for key in ["hand2_link_base",
+                    "hand2_link_1_1",
+                    "hand2_link_1_2",
+                    "hand2_link_1_3",
+                    "hand2_link_2_1",
+                    "hand2_link_2_2",
+                    "hand2_link_3_1",
+                    "hand2_link_3_2",
+                    "hand2_link_4_1",
+                    "hand2_link_4_2",
+                    "hand2_link_5_1",
+                    "hand2_link_5_2"]:
+            self._contact_sensors[key] = self.scene.sensors[key]
 
         # arm joint index
         self._arm_joint_index = [self._robot.find_joints(joint_name)[0][0] for joint_name in self._robot.actuators["arm2"].joint_names]
@@ -138,7 +152,16 @@ class GraspLegoEnv(RLEnv):
         # joint target position for last step, include real and fake joint
         self._joint_pos_target_lasttime = self._joint_pos_target.clone()
 
+        # 
+        self._has_contacted = torch.zeros(self.num_envs,device=self.device, dtype=torch.bool) # type: ignore
+
+        self._successed = torch.zeros(self.num_envs,device=self.device, dtype=torch.bool) # type: ignore
+
         # reward lasttime
+        self._distance_reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
+        self._pose_reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
+        self._lift_reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
+        self._angle_reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
         self._reward_lasttime = torch.zeros((self.num_envs), dtype=torch.float, device=self.device)
 
         # Print information of this environment
@@ -160,12 +183,15 @@ class GraspLegoEnv(RLEnv):
         # initialize wandb
         if self.cfg.enable_wandb: 
             self._wandb = WandbLog()
-            project = "GraspLego-V2"
-            name = "PSI-DC-01" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
+            project = "PsiLab_v2.0_RL"
+            name = "GraspLego_v2_PPO" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
             self._wandb.init_wandb(project,name)
 
         # initialize Timer
         self._timer = Timer()
+
+        # initiallize output count
+        self._output_count = 0
    
     def _pre_physics_step(self, actions: torch.Tensor):
         # 
@@ -454,20 +480,20 @@ class GraspLegoEnv(RLEnv):
         # compute total reward
         total_reward = (distance_reward + pose_reward + lift_reward + angle_reward  - self._reward_lasttime) - action_penalty
         
-        self.extras['dist_reward'] += distance_reward - self.pre_distance_reward # type: ignore
-        self.extras['pose_reward'] += pose_reward  - self.pre_pose_reward# type: ignore
-        self.extras['target_up_reward'] += lift_reward - self.pre_lift_reward# type: ignore
-        self.extras['angle_reward'] += angle_reward - self.pre_angle_reward# type: ignore
+        self.extras['dist_reward'] += distance_reward - self._distance_reward_lasttime # type: ignore
+        self.extras['pose_reward'] += pose_reward  - self._pose_reward_lasttime# type: ignore
+        self.extras['target_up_reward'] += lift_reward - self._lift_reward_lasttime# type: ignore
+        self.extras['angle_reward'] += angle_reward - self._angle_reward_lasttime# type: ignore
         self.extras['action_penalty'] += action_penalty # type: ignore
 
         # compute mean reward
         self.extras['mean_reward'] += total_reward.mean().to('cpu') # type: ignore
 
         # print(self.common_step_counter)
-        self.pre_distance_reward = distance_reward
-        self.pre_pose_reward = pose_reward
-        self.pre_lift_reward = lift_reward
-        self.pre_angle_reward = angle_reward
+        self._distance_reward_lasttime = distance_reward
+        self._pose_reward_lasttime = pose_reward
+        self._lift_reward_lasttime = lift_reward
+        self._angle_reward_lasttime = angle_reward
         self._reward_lasttime = distance_reward + pose_reward + lift_reward + angle_reward
 
  
@@ -489,26 +515,42 @@ class GraspLegoEnv(RLEnv):
         #
         time_out = self.episode_length_buf >= self.max_episode_length - 1
 
-        # finger tip link state
-        thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
-        index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
+        # # finger tip link state
+        # thumb_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[0],:].clone()
+        # index_tip_link_state = self._robot.data.body_link_state_w[:,self._finger_tip_index[1],:].clone()
 
-        # target state
-        target_state =  self._target.data.root_link_state_w[:,:].clone()
+        # # target state
+        # target_state =  self._target.data.root_link_state_w[:,:].clone()
 
-        # 转换为Local坐标系
-        thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
-        index_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
-        target_state[:,:3] -= self.scene.env_origins[:,:]
+        # # 转换为Local坐标系
+        # thumb_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
+        # index_tip_link_state[:,:3] -= self.scene.env_origins[:,:]
+        # target_state[:,:3] -= self.scene.env_origins[:,:]
 
-        fingertip_pos = [thumb_tip_link_state[:,:3],index_tip_link_state[:,:3]]
-        finger_dist = sum([torch.norm(target_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
+        # fingertip_pos = [thumb_tip_link_state[:,:3],index_tip_link_state[:,:3]]
+        # finger_dist = sum([torch.norm(target_state[:,:3] - pos, p=2, dim=-1) for pos in fingertip_pos])
 
-        # todo:确认重置规则，GYM源代码中只有一个env，所以不确定是一个完成所有重置，还是谁完成谁重置
-        resets = torch.where(finger_dist <= -1, torch.ones(self.num_envs,device=self.device), torch.zeros(self.num_envs,device=self.device))# type: ignore
+        # async_reset
+        if self.cfg.async_reset:
+            #
+            bfailed,self._has_contacted = eval_fail(self._target,self._contact_sensors,self._has_contacted)
+            self._successed = eval_success(self._target,self._contact_sensors,self.cfg.lift_height_target)
+            # reset while successed or failed
+            resets = self._successed & bfailed
+            #
+            # print("resets: ",resets)
 
 
-        # reset_time = time.time()
+        # sync reset
+        else:
+            # never reset until time out
+            resets = torch.zeros(self.num_envs,device=self.device)
+            # 
+            # self._successed = eval_success(self._target,self._contact_sensors,self.cfg.lift_height_target)
+            # resets = torch.where(finger_dist <= -1, torch.ones(self.num_envs,device=self.device), torch.zeros(self.num_envs,device=self.device))# type: ignore
+
+        
+        # contact_sensor = self.scene.sensors["hand2_link_1_3"]
 
         # print('*******************************')
         # print('get_dones_total :%s毫秒' % ((reset_time - get_dones_start)*1000))
@@ -523,20 +565,58 @@ class GraspLegoEnv(RLEnv):
         
         # ############ Save Data ################
         if self.cfg.enable_output and self._data is not None:
-            env_save_list = []
-            for i in range(self.scene.num_envs):
-                delta_z = self._target.data.root_com_pos_w[i,2] - self._target_init_pose[i,2]
-                if abs(delta_z - self.cfg.lift_height_target)<0.1:
-                    env_save_list.append(i)
-            # single env
-            if self.scene.num_envs == 1:
-                if len(env_save_list)==1:
-                    save_data(self._data,self.cfg)
-            # multi env
-            elif self.scene.num_envs >1:
-                save_data_muilt_env(self._data,self.cfg,env_save_list)
+            # get index of envs will save data
+            # asynchronous reset
+            if self.cfg.async_reset:
+                env_save_list=[]
+                for env_index in env_ids:
+                    if not self.reset_time_outs[env_index]:
+                        env_save_list.append(env_index)
+                
+            # synchronous reset
             else:
-                raise Exception(f"Create Data Buffer Error as {self.scene.num_envs} is incorrect") 
+                env_save_list = []
+                for i in range(self.scene.num_envs):
+                    delta_z = self._target.data.root_com_pos_w[i,2] - self._target_init_pose[i,2]
+                    if abs(delta_z - self.cfg.lift_height_target)<0.1:
+                        env_save_list.append(i)
+
+            # save data 
+            # print(env_save_list)
+            if len(env_save_list)>0:
+                print(env_save_list)
+                # single env
+                if self.scene.num_envs == 1:
+                    # save_data(self._data,self.cfg)
+                    pass
+                # multi env
+                elif self.scene.num_envs >1:
+                    pass
+                    save_data_muilt_env(self._data,self.cfg,env_save_list)
+                else:
+                    raise Exception(f"Save Data Error as {self.scene.num_envs} is incorrect") 
+
+                self._output_count += len(env_save_list)
+                # record_time = self._timer.run_time() /60.0
+                # record_rate = self._output_count / record_time
+                #   
+                # print(f"采集时长: {record_time} 分钟")
+                # print(f"采集数据: {self._output_count} 条")
+                # print(f"采集效率: {record_rate} 条/分钟")
+            #
+            record_time = self._timer.run_time() /60.0
+            print(f"时长: {record_time} 分钟")
+            record_rate = self._episodes / record_time
+            print(f"效率: {record_rate} 条/分钟")
+            print(f"成功条数/总条数: {self._output_count}/{self._episodes} ")
+
+        # update episodes
+        if self.cfg.async_reset:
+            self._episodes += 1
+        else:
+            self._episodes += self.num_envs
+
+        #
         
         # why do this?
         if env_ids is None or len(env_ids) == self.num_envs:
@@ -546,28 +626,31 @@ class GraspLegoEnv(RLEnv):
         super()._reset_idx(env_ids) # type: ignore
 
         # run 50 step until all rigid is static
-        for i in range(50):
-            self.sim.step(render=False)
-            self.scene.update(dt=self.physics_dt)
+        # for i in range(50):
+        #     self.sim.step(render=False)
+        #     self.scene.update(dt=self.physics_dt)
 
         # store variables
-        self._target_init_pose = self._target.data.root_link_state_w[:,:7].clone()
+        self._target_init_pose[env_ids,:7] = self._target.data.root_link_state_w[env_ids,:7].clone()
 
         # ############ Reset All Variables ################
 
         # fix: set pre value acoording to joint default position
-        self._joint_pos_target = self._robot.data.default_joint_pos[:,self._arm_joint_index+self._hand_real_joint_index].clone()
-        self._joint_pos_target_lasttime =  self._joint_pos_target.clone()
+        # torch not support slice with multi dimension tensor
+        temp = self._robot.data.default_joint_pos[env_ids,:].clone()
+        self._joint_pos_target[env_ids,:] = temp[:,self._arm_joint_index+self._hand_real_joint_index]
+        # self._joint_pos_target[env_ids,:] = self._robot.data.default_joint_pos[[0,1],].clone()
+        self._joint_pos_target_lasttime[env_ids,:] =  self._joint_pos_target[env_ids,:].clone()
 
         # compute reward
         distance_reward,pose_reward,lift_reward,angle_reward,action_penalty = self._get_current_rewards_and_penalty()
 
         # reset the pre reward
-        self.pre_distance_reward = distance_reward
-        self.pre_pose_reward = pose_reward
-        self.pre_lift_reward = lift_reward
-        self.pre_angle_reward = angle_reward
-        self._reward_lasttime = distance_reward + pose_reward + lift_reward + angle_reward
+        self._distance_reward_lasttime[env_ids] = distance_reward[env_ids]
+        self._pose_reward_lasttime[env_ids] = pose_reward[env_ids]
+        self._lift_reward_lasttime[env_ids] = lift_reward[env_ids]
+        self._angle_reward_lasttime[env_ids] = angle_reward[env_ids]
+        self._reward_lasttime[env_ids] = distance_reward[env_ids] + pose_reward[env_ids] + lift_reward[env_ids] + angle_reward[env_ids]
 
         # print and log info
         if self.cfg.env_id_print_data in env_ids and self.common_step_counter > 0:
@@ -600,8 +683,7 @@ class GraspLegoEnv(RLEnv):
             # reset extras
             self.extras = {'dist_reward': 0, 'action_penalty': 0, 'target_up_reward': 0, "pose_reward": 0, 'angle_reward': 0, "mean_reward":0}
         
-        # update episodes
-        self._episodes += 1
+
 
 @torch.jit.script
 def torch_rand_float(lower, upper, shape, device):

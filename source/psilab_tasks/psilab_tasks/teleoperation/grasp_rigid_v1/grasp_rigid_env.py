@@ -136,6 +136,21 @@ class GraspRigidEnv(TPEnv):
         self._robot = self.scene.robots["robot"]
         self._target = self.scene.rigid_objects["bottle"]
 
+        self._contact_sensors = {}
+        for key in ["hand2_link_base",
+                    "hand2_link_1_1",
+                    "hand2_link_1_2",
+                    "hand2_link_1_3",
+                    "hand2_link_2_1",
+                    "hand2_link_2_2",
+                    "hand2_link_3_1",
+                    "hand2_link_3_2",
+                    "hand2_link_4_1",
+                    "hand2_link_4_2",
+                    "hand2_link_5_1",
+                    "hand2_link_5_2"]:
+            self._contact_sensors[key] = self.scene.sensors[key]
+
         # start vuer threading
         self._vuer.start()
 
@@ -150,10 +165,10 @@ class GraspRigidEnv(TPEnv):
         self._hand_virtual_joint_index_left = self._robot.actuators["hand1"].joint_indices[6:] # type: ignore
         self._hand_virtual_joint_index_right = self._robot.actuators["hand2"].joint_indices[6:] # type: ignore
         #
-        # pass
+        # initialize Timer
         self._timer = Timer()
         # variables used to store contact flag
-        self._has_contacted = False
+        self._has_contacted = torch.zeros(self.num_envs,device=self.device, dtype=torch.bool) # type: ignore
        
    
     def step(self,actions):
@@ -179,26 +194,18 @@ class GraspRigidEnv(TPEnv):
         # print(self.scene.robots["robot1"].actuators["hand1"].joint_indices) # type: ignore)
         
         # self.vuer.veur_step()
-        contact_sensors = {
-            "left_hand":self.scene.sensors["left_hand"],
-            "right_hand":self.scene.sensors["right_hand"],
-        }
 
         # Automatically determine success or failure after recording
         if self._vuer.bRecording:
-            pass
-            failed,self._has_contacted = eval_fail(self._robot,self._target,contact_sensors, self._has_contacted) # type: ignore
+            bfailed,self._has_contacted = eval_fail(self._target,self._contact_sensors, self._has_contacted) # type: ignore
             # 失败判断
-            if failed: 
+            if bfailed[0]: 
                 print("Failed")
                 self.reset()
 
             # 成功判断
-            if eval_success(
-                self._robot,
-                self._target,
-                contact_sensors, # type: ignore
-                0.3): 
+            bsuccessed= eval_success(self._target, self._contact_sensors,0.3) # type: ignore
+            if bsuccessed[0]: 
                 print("Success")
                 # only save data while "enable_output" is true
                 if self.cfg.enable_output:

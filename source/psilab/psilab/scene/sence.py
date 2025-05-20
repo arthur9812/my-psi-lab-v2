@@ -10,6 +10,7 @@ from collections.abc import Sequence
 import torch
 import random
 import copy
+import re
 
 """ Omniverse Modules  """ 
 import carb
@@ -158,13 +159,16 @@ class Scene(InteractiveScene):
         
         return state
 
-
     def reset(self, env_ids: Sequence[int] | None = None):
+
+        if env_ids is None:
+            env_ids = torch.arange(self.cfg.num_envs, dtype=torch.long, device=self.device) # type: ignore
+
         super().reset(env_ids)
 
         # robots
         for robot in self._robots.values():
-            robot.reset()
+            robot.reset(env_ids)
 
         # cameras
         for camera in self._cameras.values():
@@ -178,12 +182,12 @@ class Scene(InteractiveScene):
             rot = self.cfg.rigid_objects_cfg[rigid_name].init_state.rot
             lin_vel = self.cfg.rigid_objects_cfg[rigid_name].init_state.lin_vel
             ang_vel = self.cfg.rigid_objects_cfg[rigid_name].init_state.ang_vel
-            root_state_init = torch.tensor(list(pos)+list(rot)+list(lin_vel)+list(ang_vel),device=self.device).unsqueeze(0).repeat(self.num_envs,1)
-            root_state_init[:,:3]+=self.env_origins
-            rigid_object.write_root_state_to_sim(root_state_init)
+            root_state_init = torch.tensor(list(pos)+list(rot)+list(lin_vel)+list(ang_vel),device=self.device).unsqueeze(0).repeat(self.num_envs,1) # type: ignore
+            root_state_init[env_ids,:3]+=self.env_origins[env_ids,:]
+            rigid_object.write_root_state_to_sim(root_state_init[env_ids,:],env_ids = env_ids)
 
         # apply random
-        self._apply_random()
+        self._apply_random(env_ids)
 
     def reset_to(
         self,
@@ -441,16 +445,16 @@ class Scene(InteractiveScene):
         # self._apply_task_random_v2()
         # Author: Feng Yunduo 2025-02-08 start
 
-    def _apply_random(self):
+    def _apply_random(self, env_ids: Sequence[int] | None = None):
         
         # rigid objects
-        self._apply_rigid_objects_random()
+        self._apply_rigid_objects_random(env_ids)
 
 
-    def _apply_lights_random(self):
+    def _apply_lights_random(self, env_ids: Sequence[int] | None = None):
         pass
 
-    def _apply_rigid_objects_random(self):
+    def _apply_rigid_objects_random(self, env_ids: Sequence[int] | None = None):
         # 
         if self.cfg.random and self.cfg.random.rigid_objects_cfg:
             # traverse all random config
@@ -490,7 +494,7 @@ class Scene(InteractiveScene):
                         # change orientation of rigid
                         root_state[:,3:7] = ori
                 # write data to sim to activate change
-                self.rigid_objects[rigid_name].write_root_state_to_sim(root_state)
+                self.rigid_objects[rigid_name].write_root_state_to_sim(root_state[env_ids,:],env_ids)
                 # material random
                 if random_cfg.material_cfg and random_cfg.material_cfg.enable_random:
                     #
@@ -501,6 +505,14 @@ class Scene(InteractiveScene):
                     prim_paths = sim_utils.find_matching_prim_paths(shader_path)
                     # 
                     for prim_path in prim_paths:
+                        # only apply material random for sequence
+                        if re.search("/env_[0-9]+/",prim_path) is None:
+                            continue
+                        else:
+                            re_result = re.search("/env_[0-9]+/",prim_path).span()
+                            env_index = int(prim_path[re_result[0]+1:re_result[1]-1].split("_")[-1])
+                            if env_index not in env_ids:
+                                continue
                         # get prim first
                         prim = prim_utils.get_prim_at_path(prim_path)
                         #

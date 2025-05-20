@@ -3,6 +3,9 @@
 # Date: 2025-04-16
 # Vesion: 1.0
 
+""" Python Modules  """ 
+from collections.abc import Sequence
+
 """ Common Modules  """ 
 import torch
 
@@ -41,15 +44,18 @@ class DiffIKController(DifferentialIKController):
         # 
         
         
-    def reset(self,robot):
+    def reset(self,robot,env_ids: Sequence[int] | None = None):
+        #
+        if env_ids is None:
+            env_ids = robot._ALL_INDICES # type: ignore
         #
         super().reset()
         # 
-        self.eef_pose_init = robot.data.body_link_state_w[0,self.eef_link_index,:7]
+        self.eef_pose_init = robot.data.body_link_state_w[env_ids,self.eef_link_index,:7]
         # print(robot.data.body_link_state_w[0,16,:7])
         # print(robot.data.body_link_state_w[0,17,:7])
 
         # 
-        self.eef_pose_init[:3] -= robot.data.root_link_pos_w[0,:3]
+        self.eef_pose_init[:,:3] -= robot.data.root_link_pos_w[env_ids,:3]
         #
         self.set_command(self.eef_pose_init)

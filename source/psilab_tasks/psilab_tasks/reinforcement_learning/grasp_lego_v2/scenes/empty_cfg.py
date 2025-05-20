@@ -14,6 +14,7 @@ import torch
 import isaaclab.sim as sim_utils
 from isaaclab.sim.schemas.schemas_cfg import RigidBodyPropertiesCfg
 from isaaclab.sim.spawners.sensors.sensors_cfg import PinholeCameraCfg
+from isaaclab.sensors import ContactSensorCfg
 from isaaclab.markers import VisualizationMarkersCfg
 from isaaclab.sensors.camera.tiled_camera_cfg import TiledCameraCfg
 from isaaclab.actuators import ImplicitActuatorCfg
@@ -59,7 +60,8 @@ SCENE_CFG = SceneCfg(
             "robot" : RobotBaseCfg(
                 prim_path = "/World/envs/env_[0-9]+/Robot",
                 spawn = sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
+                    # usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned_Flattened.usd",
                     activate_contact_sensors = True,
 
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -256,6 +258,7 @@ SCENE_CFG = SceneCfg(
                     usd_path=[
                         PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
                     ],
+                    activate_contact_sensors = True,
                     random_choice=False,
                     scale=(1.0,1.0,1.0),
                     visual_material=None,
@@ -286,7 +289,92 @@ SCENE_CFG = SceneCfg(
         tiled_cameras_cfg = {},
 
         # contact sensor
-        contact_sensors_cfg={},
+        contact_sensors_cfg={
+            "hand2_link_base": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand1_link_base",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_1_1": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_1_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_1_2": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_1_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_1_3": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_1_3",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_2_1": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_2_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_2_2": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_2_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_3_1": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_3_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_3_2": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_3_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_4_1": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_4_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_4_2": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_4_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_5_1": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_5_1",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+            "hand2_link_5_2": ContactSensorCfg(
+                prim_path="/World/envs/env_[0-9]+/Robot/hand2_link_5_2",
+                update_period=0.0,
+                history_length=0,
+                debug_vis=False,
+                filter_prim_paths_expr=["/World/envs/env_[0-9]+/Target"],
+            ),
+        },
 
         # debug marker
         marker_cfg = VisualizationMarkersCfg(
