@@ -71,6 +71,8 @@ from isaaclab_tasks.utils.parse_cfg import parse_env_cfg,load_cfg_from_registry
 from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 from isaaclab.utils.io import dump_pickle, dump_yaml
 
+from isaaclab.sim import SimulationContext as SimCtx
+
 """ Psi Modules  """ 
 # import psilab.tasks # noqa: F401
 import psilab_tasks
@@ -124,6 +126,9 @@ if not env_cfg.enable_marker:
 
 # create env
 env = gym.make(args_cli.task, cfg=env_cfg)
+
+# this will start isaac lab with partial rendering, but the "Rendring Mode" displayed in GUI will still be "FULL_RENDERING"
+env.unwrapped.sim.set_render_mode(SimCtx.RenderMode.PARTIAL_RENDERING)
 
 # parse agent configuration
 agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
