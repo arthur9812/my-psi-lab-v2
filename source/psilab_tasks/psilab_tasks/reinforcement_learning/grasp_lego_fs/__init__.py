@@ -1,0 +1,20 @@
+import gymnasium as gym
+
+from . import agents
+from . import scenes
+
+##
+# Register Gym environments.
+##
+
+# Psi-RL-Grasp-Lego-v1 use Psi DC 01 as robot, lego is 1x2 
+gym.register(
+    id="Psi-RL-Grasp-Lego-fs",
+    entry_point=f"{__name__}.dexgrasp:DexGraspEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": f"{__name__}.dexgrasp:DexGraspEnvCfg",
+        "scene_cfg_entry_point":f"{scenes.__name__}.empty_cfg:SCENE_CFG",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml"
+    },
+)
