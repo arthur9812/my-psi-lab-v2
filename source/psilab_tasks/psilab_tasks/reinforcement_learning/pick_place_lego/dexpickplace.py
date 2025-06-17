@@ -244,6 +244,8 @@ class DexPickPlaceEnv(RLEnv):
         
         self._get_full_observations()
         observations = {"policy": self._obs, "critic":self._obs}
+
+        # self._check_shift_subtasks()
         return observations
     
     def _get_rewards(self) -> torch.Tensor:
@@ -433,12 +435,17 @@ class DexPickPlaceEnv(RLEnv):
         """
         self.subtask_finished = (torch.norm(self.object_state - self._target_lift_pose, p=2, dim=-1)) < 0.05
         if len(self.subtask_finished) > 0:
+            print(cp.LYH_DEBUG("subtask_finished:"), cp.LYH_DEBUG(self.subtask_finished))
             self.subtask_finished = self.subtask_finished & self._task_playing
+            print(cp.LYH_DEBUG("subtask_finished after:"), cp.LYH_DEBUG(self.subtask_finished))
 
             # update subtask object
             self._subtask_index[self.subtask_finished] += 1
+            print(cp.LYH_DEBUG("subtask_index:"), cp.LYH_DEBUG(self._subtask_index))
             self._task_playing = self._subtask_index < len(self.cfg.lift_targets)
+            print(cp.LYH_DEBUG("task_playing:"), cp.LYH_DEBUG(self._task_playing))
             self._target_lift_pose[self._task_playing] = torch.tensor(self.cfg.lift_targets[self._subtask_index[self._task_playing]], device=self.device).repeat(len(self._task_playing), 1)
+            print(cp.LYH_DEBUG("target_lift_pose:"), cp.LYH_DEBUG(self._target_lift_pose))
 
             # # align subtask reward
             # tmp_pre_energy = self._pre_energy[self._task_playing]
@@ -446,9 +453,11 @@ class DexPickPlaceEnv(RLEnv):
             # self.pretask_rwd[self._task_playing] += tmp_pre_energy - self._pre_energy[self._task_playing]
             
             # reset pre energy
+            print(cp.LYH_DEBUG("pre_energy:"), cp.LYH_DEBUG(self._pre_energy))
             _ = self._get_rewards()
+            print(cp.LYH_DEBUG("pre_energy after:"), cp.LYH_DEBUG(self._pre_energy))
 
-        pass
+        
 
     def _compute_intermediate_values(self):
         self._hand_index = self._finger_tip_index + [self._hand_base_link_index]
@@ -715,7 +724,7 @@ def _compute_rewards(
     lift_reward = pose_dist * 400.0 * torch.clamp((init_dist - goal_dist), -0.05, None)
     
     # define orientation reward
-    orientation_reward =  (- _quat_sin2_loss(lego_init_rot, lego_rot)) * 30.0 * 0
+    orientation_reward =  (- _quat_sin2_loss(lego_init_rot, lego_rot)) * 30.0
 
     # define action penalty
     action_penalty = 0.001 * torch.sum(arm_actions.pow_(2), dim=-1)
