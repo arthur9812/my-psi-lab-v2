@@ -17,8 +17,11 @@ class WandbLog(metaclass=SingletonMeta):
         self._init = False
 
 
-    def init_wandb(self, project:str, name:str):
-        wandb.init(project=project, name=name)  
+    def init_wandb(self, project:str, name:str, tags:list[str]=[]):
+        if len(tags) > 0:
+            wandb.init(project=project, name=name, tags=tags)  
+        else:
+            wandb.init(project=project, name=name)  
         self.project = project
         self.name = name
         self._init = True
@@ -38,10 +41,15 @@ class WandbLog(metaclass=SingletonMeta):
             return
         # if len(self.log_data.keys())==0:
         #     return
-        
+        self.step += 1
         wandb.log(
             { key:self.log_data[key]}, 
             step = self.step
             )
-
+        
+    def upload_all(self):
+        if not self._init:
+            return
+        self.step += 1
+        wandb.log(self.log_data, step = self.step)
     
