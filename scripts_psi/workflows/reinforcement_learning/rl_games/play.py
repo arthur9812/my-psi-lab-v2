@@ -3,6 +3,8 @@
 # Date: 2025-04-16
 # Vesion: 1.0
 
+from rich.traceback import install
+install()
 
 """ Arguments parse """
 import argparse
