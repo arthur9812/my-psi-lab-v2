@@ -52,9 +52,10 @@ class DexPickPlaceEnvCfg(RLEnvCfg):
     lift_height_target = 0.3 # target lift height target
 
     lift_target_delta = [0.0, 0.2, 0.3]
-    lift_targets = [[0.5,-0.105,1.1],
-                    [0.5,0.105,1.1]]
-
+    lift_targets = [[0.5,-0.105,1.0],
+                    [0.5,0.105,1.0],
+                    [0.5,0.105,0.8]]
+    # lift_targets = [[0.5,-0.105,1.1]]
     # simulation config
     sim: SimulationCfg = SimulationCfg(
         dt = 1 / 120, 
@@ -144,6 +145,7 @@ class DexPickPlaceEnv(RLEnv):
         self._prev_targets = self._robot.data.default_joint_pos.clone()
         self._target_init_pose = torch.zeros((self.num_envs, 7), device=self.device)
         self._target_lift_pose = torch.zeros((self.num_envs, 3), device=self.device)
+        self._final_target_pose = torch.tensor(self.cfg.lift_targets[-1], device=self.device).repeat(self.num_envs, 1)
         self._target_lift_height = self.cfg.lift_height_target * torch.ones(self.num_envs, device=self.device)
         self._target_lift_delta = torch.tensor(self.cfg.lift_target_delta, device=self.device).repeat(self.num_envs, 1)
         
@@ -180,7 +182,7 @@ class DexPickPlaceEnv(RLEnv):
             self._wandb = WandbLog()
             project = "PsiLab_v2.0_RL"
             name = "Pick-Place-Lego" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
-            tags = ["orient_reward"]
+            tags = ["successed cond", "subtask shift"]
             self._wandb.init_wandb(project, name, tags)
 
         # initialize Timer
@@ -245,7 +247,7 @@ class DexPickPlaceEnv(RLEnv):
         self._get_full_observations()
         observations = {"policy": self._obs, "critic":self._obs}
 
-        # self._check_shift_subtasks()
+        self._check_shift_subtasks()
         return observations
     
     def _get_rewards(self) -> torch.Tensor:
@@ -266,7 +268,7 @@ class DexPickPlaceEnv(RLEnv):
         # print(cp.LYH_DEBUG("lift_reward:"), cp.LYH_DEBUG(lift_reward[0]))
         # print(cp.LYH_DEBUG("orientation_reward:"), cp.LYH_DEBUG(orientation_reward[0]))
         total_reward = (distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward - self._pre_energy) - action_penalty
-        # print("orientation_reward:", orientation_reward)
+        # print(cp.LYH_DEBUG("total_reward:"), cp.LYH_DEBUG(total_reward[0]))
         self.extras['dist_reward'] += (distance_reward[0] - self._pre_distance_reward[0])  # type: ignore
         self.extras['pose_reward'] += (pose_reward[0] - self._pre_pose_reward[0])# type: ignore
         self.extras['lift_reward'] += (lift_reward[0].to('cpu').numpy() - self._pre_lift_reward[0].to('cpu').numpy())# type: ignore
@@ -295,13 +297,14 @@ class DexPickPlaceEnv(RLEnv):
         else:
             resets = torch.zeros(self.num_envs, device=self.device)
         
-        self._successed = (self._target.data.root_pos_w[:, 2] - self._target_init_pose[:, 2]) >= self.cfg.lift_height_target * 0.8
+        # self._successed = (self._target.data.root_pos_w[:, 2] - self._target_init_pose[:, 2]) >= self.cfg.lift_height_target * 0.8
+        self._successed = self._is_success(self._final_target_pose[:, :3], self.object_state[:, :3])
         self.extras['success'] = self._successed.float().mean().item() * 100.0
         
         return resets, time_out
 
     def _is_success(self, target_pos: torch.Tensor, object_pos: torch.Tensor, ) -> torch.Tensor:
-        return (torch.norm(object_pos - target_pos, p=2, dim=-1))<0.05
+        return (torch.norm(object_pos - target_pos, p=2, dim=-1)) < 0.05
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         if self.cfg.enable_output and self._data is not None:
@@ -318,7 +321,8 @@ class DexPickPlaceEnv(RLEnv):
                 env_save_list = []
                 for i in range(self.scene.num_envs):
                     delta_z = self._target.data.root_com_pos_w[i,2] - self._target_init_pose[i,2]
-                    if abs(delta_z - self.cfg.lift_height_target)<0.1:
+                    if self._is_success(self._final_target_pose[i, :3], self.object_state[i, :3]):
+                    # if abs(delta_z - self.cfg.lift_height_target)<0.1:
                         env_save_list.append(i)
 
             # save data 
@@ -392,6 +396,7 @@ class DexPickPlaceEnv(RLEnv):
         # print(cp.LYH_DEBUG("reset target_init_pose:"), cp.LYH_DEBUG(euler_from_quat(self._target_init_pose[0, 3:7])))
         # self._target_lift_pose = self._target_init_pose[:, :3].clone()
         # self._target_lift_pose += self._target_lift_delta
+        self._subtask_index = torch.zeros(self.num_envs, device=self.device, dtype=torch.int32)
         self._target_lift_pose = torch.tensor(self.cfg.lift_targets[0], device=self.device).repeat(self.num_envs, 1)
         # compute reward
         self._compute_intermediate_values()
@@ -433,29 +438,36 @@ class DexPickPlaceEnv(RLEnv):
         1.检查当前子任务是否完成
         2.如果完成，则更新子任务，包括任务目标和reward fucntion
         """
-        self.subtask_finished = (torch.norm(self.object_state - self._target_lift_pose, p=2, dim=-1)) < 0.05
-        if len(self.subtask_finished) > 0:
-            print(cp.LYH_DEBUG("subtask_finished:"), cp.LYH_DEBUG(self.subtask_finished))
+        self.subtask_finished = self._is_success(self._target_lift_pose[:, :3], self.object_state[:, :3])
+        if torch.any(self.subtask_finished):
+            # print(cp.LYH_DEBUG("subtask_finished:"), cp.LYH_DEBUG(self.subtask_finished))
             self.subtask_finished = self.subtask_finished & self._task_playing
-            print(cp.LYH_DEBUG("subtask_finished after:"), cp.LYH_DEBUG(self.subtask_finished))
+            # print(cp.LYH_DEBUG("subtask_finished after:"), cp.LYH_DEBUG(self.subtask_finished))
 
             # update subtask object
             self._subtask_index[self.subtask_finished] += 1
-            print(cp.LYH_DEBUG("subtask_index:"), cp.LYH_DEBUG(self._subtask_index))
+            # print(cp.LYH_DEBUG("subtask_index:"), cp.LYH_DEBUG(self._subtask_index))
             self._task_playing = self._subtask_index < len(self.cfg.lift_targets)
-            print(cp.LYH_DEBUG("task_playing:"), cp.LYH_DEBUG(self._task_playing))
-            self._target_lift_pose[self._task_playing] = torch.tensor(self.cfg.lift_targets[self._subtask_index[self._task_playing]], device=self.device).repeat(len(self._task_playing), 1)
-            print(cp.LYH_DEBUG("target_lift_pose:"), cp.LYH_DEBUG(self._target_lift_pose))
+            # print(cp.LYH_DEBUG("task_playing:"), cp.LYH_DEBUG(self._task_playing))
+            # self._target_lift_pose[self._task_playing] = torch.tensor(self.cfg.lift_targets[self._subtask_index[self._task_playing]], device=self.device)
 
-            # # align subtask reward
-            # tmp_pre_energy = self._pre_energy[self._task_playing]
-            # _ = self._get_rewards()
-            # self.pretask_rwd[self._task_playing] += tmp_pre_energy - self._pre_energy[self._task_playing]
-            
-            # reset pre energy
-            print(cp.LYH_DEBUG("pre_energy:"), cp.LYH_DEBUG(self._pre_energy))
-            _ = self._get_rewards()
-            print(cp.LYH_DEBUG("pre_energy after:"), cp.LYH_DEBUG(self._pre_energy))
+            task_shift_mask = self._task_playing & self.subtask_finished
+            if torch.any(task_shift_mask):
+                subtask_indices = self._subtask_index[task_shift_mask]
+                lift_targets = torch.tensor([self.cfg.lift_targets[idx] for idx in subtask_indices], device=self.device)
+                self._target_lift_pose[task_shift_mask] = lift_targets
+
+                # print(cp.LYH_DEBUG("target_lift_pose:"), cp.LYH_DEBUG(self._target_lift_pose))
+                
+                # # align subtask reward
+                # tmp_pre_energy = self._pre_energy[self._task_playing]
+                # _ = self._get_rewards()
+                # self.pretask_rwd[self._task_playing] += tmp_pre_energy - self._pre_energy[self._task_playing]
+                
+                # reset pre energy
+                # print(cp.LYH_DEBUG("pre_energy:"), cp.LYH_DEBUG(self._pre_energy))
+                _ = self._get_rewards()
+                # print(cp.LYH_DEBUG("pre_energy after:"), cp.LYH_DEBUG(self._pre_energy))
 
         
 
@@ -721,10 +733,10 @@ def _compute_rewards(
     # print("init_dist:", init_dist)
     goal_dist = torch.norm(lego_pos - target_pos, p=2, dim=-1)
     # print("goal_dist:", goal_dist)
-    lift_reward = pose_dist * 400.0 * torch.clamp((init_dist - goal_dist), -0.05, None)
+    lift_reward = pose_dist * 400.0 * torch.clamp((init_dist - goal_dist), -0.5, None)
     
     # define orientation reward
-    orientation_reward =  (- _quat_sin2_loss(lego_init_rot, lego_rot)) * 30.0
+    orientation_reward =  (- _quat_sin2_loss(lego_init_rot, lego_rot)) * 30.0 * 0
 
     # define action penalty
     action_penalty = 0.001 * torch.sum(arm_actions.pow_(2), dim=-1)
