@@ -72,6 +72,7 @@ from isaaclab_rl.rl_games import RlGamesGpuEnv, RlGamesVecEnvWrapper
 from isaaclab.utils.io import dump_pickle, dump_yaml
 
 from isaaclab.sim import SimulationContext as SimCtx
+from isaaclab.utils.assets import retrieve_file_path
 
 """ Psi Modules  """ 
 # import psilab.tasks # noqa: F401
@@ -133,6 +134,16 @@ env.unwrapped.sim.set_render_mode(SimCtx.RenderMode.PARTIAL_RENDERING)
 # parse agent configuration
 agent_cfg = load_cfg_from_registry(args_cli.task, "rl_games_cfg_entry_point")
 
+if args_cli.checkpoint is not None:
+    resume_path = retrieve_file_path(args_cli.checkpoint)
+    agent_cfg["params"]["load_checkpoint"] = True
+    agent_cfg["params"]["load_path"] = resume_path
+    print(f"[INFO]: Loading model checkpoint from: {agent_cfg['params']['load_path']}")
+
+if args_cli.sigma is not None:
+    train_sigma= float(args_cli.sigma)
+else:
+    train_sigma = None
 #
 agent_cfg["params"]["seed"] = args_cli.seed # type: ignore
 
@@ -182,7 +193,7 @@ runner.reset()
 
 # train the agent
 if args_cli.checkpoint is not None:
-    runner.run({"train": True, "play": False, "sigma": None})
+    runner.run({"train": True, "play": False, "sigma": train_sigma, "checkpoint": resume_path})
 else:
     runner.run({"train": True, "play": False, "sigma": None})
 
