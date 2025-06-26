@@ -44,6 +44,8 @@ from psilab.scene.sence import Scene
 from psilab.utils.data_collect_utils import create_data_buffer_muilt_env,parse_data_muilt_env,reset_data_buffer_muilt_env
 from psilab.utils.data_collect_utils import create_data_buffer,parse_data
 
+import psilab.utils.color_print as cp
+
 class RLEnv(gym.Env):
     """The superclass for the direct workflow to design environments.
 
@@ -437,7 +439,7 @@ class RLEnv(gym.Env):
 
 
         self.reward_buf = self._get_rewards()
-
+        # print(cp.yellow(f"reward_buf: {self.reward_buf[0].to('cpu').numpy()}"))
         # get_reward_end = time.time()
 
         # -- reset envs that terminated/timed-out and log the episode information
@@ -476,6 +478,8 @@ class RLEnv(gym.Env):
 
         # others_end = time.time()
 
+        self._check_shift_subtask()
+        
         # update observations
         self.obs_buf = self._get_observations()
 
@@ -805,3 +809,12 @@ class RLEnv(gym.Env):
         set their visibility into the stage.
         """
         raise NotImplementedError(f"Debug visualization is not implemented for {self.__class__.__name__}.")
+
+    @abstractmethod
+    def _check_shift_subtask(self) -> bool:
+        """Check if the subtasks should be shifted.
+
+        Returns:
+            Whether the subtasks should be shifted.
+        """
+        raise NotImplementedError(f"Please implement the '_check_shift_subtasks' method for {self.__class__.__name__}.")

@@ -63,3 +63,5 @@ _build
 
 # psi lab assets
 assets/*
+.isaaclab.sh.swp
+.vscode/launch.json
