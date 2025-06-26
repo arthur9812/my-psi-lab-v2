@@ -36,13 +36,14 @@ class DexPickPlaceEnvCfg(RLEnvCfg):
     """Configuration for RL environment."""
 
     # params
-    max_episode_length = 256
+    max_episode_length = 384
+    # max_episode_length = 1024
     episode_length_s = 1.0 * max_episode_length / 60.0
     decimation = 2
     action_scale = 0.5
     action_space = 13
-    observation_space = 130
-    state_space = 130
+    observation_space = 154
+    state_space = 154
 
     # other params from gym
     arm_hand_dof_speed_scale = 20.0
@@ -52,10 +53,22 @@ class DexPickPlaceEnvCfg(RLEnvCfg):
     lift_height_target = 0.3 # target lift height target
 
     lift_target_delta = [0.0, 0.2, 0.3]
-    lift_targets = [[0.5,-0.105,1.0],
-                    [0.5,0.105,1.0],
-                    [0.5,0.105,0.8]]
+    lift_targets = [[0.5,-0.105,0.8], # grasp
+                    [0.5,0.0,1.0], # up
+                    # [0.5,0.105,1.0], # right
+                    [0.5,0.105,0.75], # down
+                    [0.5,0.105,0.75], # standby
+                    [0.0,0.0,0.0]] # ending state
     # lift_targets = [[0.5,-0.105,1.1]]
+
+
+    reward_func = [{'standby': False, 'grasp': True, 'position': False, 'orientation': False},
+                    {'standby': False, 'grasp': True, 'position': True, 'orientation': False},
+                    # {'standby': False, 'grasp': True, 'position': True, 'orientation': True},
+                    {'standby': False, 'grasp': True, 'position': True, 'orientation': False},
+                    {'standby': True, 'grasp': False, 'position': True, 'orientation': False},
+                    {'standby': True, 'grasp': False, 'position': False, 'orientation': False}] # ending state
+
     # simulation config
     sim: SimulationCfg = SimulationCfg(
         dt = 1 / 120, 
@@ -145,10 +158,12 @@ class DexPickPlaceEnv(RLEnv):
         self._prev_targets = self._robot.data.default_joint_pos.clone()
         self._target_init_pose = torch.zeros((self.num_envs, 7), device=self.device)
         self._target_lift_pose = torch.zeros((self.num_envs, 3), device=self.device)
-        self._final_target_pose = torch.tensor(self.cfg.lift_targets[-1], device=self.device).repeat(self.num_envs, 1)
+        self._final_target_pose = torch.tensor(self.cfg.lift_targets[-2], device=self.device).repeat(self.num_envs, 1)
         self._target_lift_height = self.cfg.lift_height_target * torch.ones(self.num_envs, device=self.device)
         self._target_lift_delta = torch.tensor(self.cfg.lift_target_delta, device=self.device).repeat(self.num_envs, 1)
-        
+        self._hand_init_pose = torch.zeros((self.num_envs, 3), device=self.device)
+        self._hand_target_pose = torch.zeros((self.num_envs, 3), device=self.device)
+
         # unit tensors
         self._x_unit_tensor = torch.tensor([1, 0, 0], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
         self._y_unit_tensor = torch.tensor([0, 1, 0], dtype=torch.float, device=self.device).repeat((self.num_envs, 1))
@@ -164,9 +179,13 @@ class DexPickPlaceEnv(RLEnv):
         self._contacted = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         self._successed = torch.zeros(self.num_envs, device=self.device, dtype=torch.bool)
         
+        # subtasks
         self._subtask_index = torch.zeros(self.num_envs, device=self.device, dtype=torch.int32)
         self._task_playing = torch.ones(self.num_envs, device=self.device, dtype=torch.bool)
-        self.pretask_rwd = torch.zeros(self.num_envs, device=self.device, dtype=torch.float)
+        
+        self.reward_func_active = {}
+        for key, value in self.cfg.reward_func[0].items():
+            self.reward_func_active[key] = torch.tensor(value, device=self.device).repeat(self.num_envs)
 
         # Print information of this environment
         print("Num envs: ", self.num_envs)
@@ -175,14 +194,16 @@ class DexPickPlaceEnv(RLEnv):
         print("Num hand dofs: ", 6)
         print("hand_base_rigid_body_index: ", self._hand_base_link_index)
         
-        self.extras = {'dist_reward': 0.0, 'pose_reward': 0.0, 'lift_reward': 0.0, 'angl_reward': 0.0, 'orient_reward': 0.0, 'act_penalty': 0.0, 'success': 0.0}
+        self.extras = {'standby_reward': 0.0, 'dist_reward': 0.0, 'pose_reward': 0.0, 'lift_reward': 0.0, 'angl_reward': 0.0, 'orient_reward': 0.0, 'act_penalty': 0.0, 'success': 0.0}
         
         # initialize wandb
         if self.cfg.enable_wandb: 
             self._wandb = WandbLog()
             project = "PsiLab_v2.0_RL"
             name = "Pick-Place-Lego" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
-            tags = ["successed cond", "subtask shift"]
+            tags = ["successed cond", "subtask shift", "target observ2"]
+            tags.append("standby reward")
+            tags.append("orientation reward")
             self._wandb.init_wandb(project, name, tags)
 
         # initialize Timer
@@ -247,14 +268,19 @@ class DexPickPlaceEnv(RLEnv):
         self._get_full_observations()
         observations = {"policy": self._obs, "critic":self._obs}
 
-        self._check_shift_subtasks()
         return observations
     
     def _get_rewards(self) -> torch.Tensor:
-        distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, action_penalty = _compute_rewards(
+        standby_active = self.reward_func_active['standby']
+        position_active = self.reward_func_active['position']
+        grasp_active = self.reward_func_active['grasp']
+        orientation_active = self.reward_func_active['orientation']
+        standby_reward, distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, action_penalty = _compute_rewards(
             self.finger_thumb_state,
             self.finger_index_state,
             self.middle_point_state,
+            self._hand_target_pose,
+            self.hand_base_state[:, :3],
             self._target_init_pose[:, :7],
             self.object_state[:, :7],
             self.actions[:, :self._arm_joint_num],
@@ -262,27 +288,29 @@ class DexPickPlaceEnv(RLEnv):
             self._prev_targets[:, self._hand_real_joint_index],
             self._z_unit_tensor,
             self._target_lift_pose,
+            standby_active,
+            position_active,
+            grasp_active,
+            orientation_active,
         )
-        # print(cp.LYH_DEBUG("target init pose:"), cp.LYH_DEBUG(euler_from_quat(self._target_init_pose[0, 3:7])))
-        # print(cp.LYH_DEBUG("object state:"), cp.LYH_DEBUG(euler_from_quat(self.object_state[0, 3:7])))
-        # print(cp.LYH_DEBUG("lift_reward:"), cp.LYH_DEBUG(lift_reward[0]))
-        # print(cp.LYH_DEBUG("orientation_reward:"), cp.LYH_DEBUG(orientation_reward[0]))
-        total_reward = (distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward - self._pre_energy) - action_penalty
-        # print(cp.LYH_DEBUG("total_reward:"), cp.LYH_DEBUG(total_reward[0]))
-        self.extras['dist_reward'] += (distance_reward[0] - self._pre_distance_reward[0])  # type: ignore
-        self.extras['pose_reward'] += (pose_reward[0] - self._pre_pose_reward[0])# type: ignore
-        self.extras['lift_reward'] += (lift_reward[0].to('cpu').numpy() - self._pre_lift_reward[0].to('cpu').numpy())# type: ignore
-        self.extras['angl_reward'] += (angle_reward[0] - self._pre_angle_reward[0])# type: ignore
-        self.extras['orient_reward'] += (orientation_reward[0] - self._pre_orientation_reward[0])# type: ignore
-        self.extras['act_penalty'] += action_penalty[0] # type: ignore
+        # print(cp.red("self.arm_hand_target_pose:"), cp.red(self._arm_hand_target_pose[0].to('cpu').numpy().tolist()))
+        total_reward = (standby_reward + distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward - self._pre_energy) - action_penalty
+        self.extras['standby_reward'] += (standby_reward.mean() - self._pre_standby_reward.mean())  # type: ignore
+        self.extras['dist_reward'] += (distance_reward.mean() - self._pre_distance_reward.mean())  # type: ignore
+        self.extras['pose_reward'] += (pose_reward.mean() - self._pre_pose_reward.mean())# type: ignore
+        self.extras['lift_reward'] += (lift_reward.mean() - self._pre_lift_reward.mean())# type: ignore
+        self.extras['angl_reward'] += (angle_reward.mean() - self._pre_angle_reward.mean())# type: ignore
+        self.extras['orient_reward'] += (orientation_reward.mean() - self._pre_orientation_reward.mean())# type: ignore
+        self.extras['act_penalty'] += action_penalty.mean() # type: ignore
 
         # update pre reward
+        self._pre_standby_reward = standby_reward
         self._pre_distance_reward = distance_reward
         self._pre_pose_reward = pose_reward
         self._pre_lift_reward = lift_reward
         self._pre_angle_reward = angle_reward
         self._pre_orientation_reward = orientation_reward
-        self._pre_energy = distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward
+        self._pre_energy = standby_reward + distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward
 
         return total_reward
 
@@ -298,13 +326,38 @@ class DexPickPlaceEnv(RLEnv):
             resets = torch.zeros(self.num_envs, device=self.device)
         
         # self._successed = (self._target.data.root_pos_w[:, 2] - self._target_init_pose[:, 2]) >= self.cfg.lift_height_target * 0.8
-        self._successed = self._is_success(self._final_target_pose[:, :3], self.object_state[:, :3])
+        self._successed = self._is_success()
         self.extras['success'] = self._successed.float().mean().item() * 100.0
         
         return resets, time_out
 
-    def _is_success(self, target_pos: torch.Tensor, object_pos: torch.Tensor, ) -> torch.Tensor:
-        return (torch.norm(object_pos - target_pos, p=2, dim=-1)) < 0.05
+    def _is_success(self) -> torch.Tensor:
+        return ~self._task_playing
+
+    def _is_subtask_success(self, target_pos: torch.Tensor, object_pos: torch.Tensor, ) -> torch.Tensor:
+        
+        grasp_active = self.reward_func_active['grasp']
+        grasp_check = (self._pre_distance_reward[:] > 0.8) & (self._pre_pose_reward[:] >= 6.0)
+        grasp_success = torch.where(grasp_active, grasp_check, torch.ones_like(grasp_check, dtype=torch.bool))
+
+        standby_active = self.reward_func_active['standby']
+        standby_check = torch.norm(self.hand_base_state[:, :3] - self._hand_target_pose, p=2, dim=-1) < 0.05
+        standby_success = torch.where(standby_active, standby_check, torch.ones_like(standby_check, dtype=torch.bool))
+
+        position_active = self.reward_func_active['position']
+        position_check = (torch.norm(object_pos - target_pos, p=2, dim=-1)) < 0.05
+        position_success = torch.where(position_active, position_check, torch.ones_like(position_check, dtype=torch.bool))
+
+        orientation_active = self.reward_func_active['orientation']
+        orientation_check = _quat_sin2_loss(self._target_init_pose[:, 3:7], self.object_state[:, 3:7]) < 0.05
+        orientation_success = torch.where(orientation_active, orientation_check, torch.ones_like(orientation_check, dtype=torch.bool))
+        
+        return grasp_success & standby_success & position_success & orientation_success
+
+    def _is_task_failed(self) -> torch.Tensor:
+        task_failed_env_ids = (self.object_state[:, 2] - self._target_init_pose[:, 2] > 0.05) & (self._pre_pose_reward <= 1.0) & (self._subtask_index > 0) & self.reward_func_active['grasp']
+        task_failed_env_ids = torch.nonzero(task_failed_env_ids, as_tuple=False).squeeze(-1)
+        return task_failed_env_ids
 
     def _reset_idx(self, env_ids: torch.Tensor | None):
         if self.cfg.enable_output and self._data is not None:
@@ -321,7 +374,7 @@ class DexPickPlaceEnv(RLEnv):
                 env_save_list = []
                 for i in range(self.scene.num_envs):
                     delta_z = self._target.data.root_com_pos_w[i,2] - self._target_init_pose[i,2]
-                    if self._is_success(self._final_target_pose[i, :3], self.object_state[i, :3]):
+                    if self._is_success()[i]:
                     # if abs(delta_z - self.cfg.lift_height_target)<0.1:
                         env_save_list.append(i)
 
@@ -391,21 +444,13 @@ class DexPickPlaceEnv(RLEnv):
         for _ in range(30):
             self.sim.step(render=True)
             self.scene.update(dt=self.physics_dt)
-        self._target_init_pose[env_ids, :7] = self._target.data.root_link_state_w[env_ids, :7].clone()
-        self._target_init_pose[:, :3] -= self.scene.env_origins
-        # print(cp.LYH_DEBUG("reset target_init_pose:"), cp.LYH_DEBUG(euler_from_quat(self._target_init_pose[0, 3:7])))
-        # self._target_lift_pose = self._target_init_pose[:, :3].clone()
-        # self._target_lift_pose += self._target_lift_delta
-        self._subtask_index = torch.zeros(self.num_envs, device=self.device, dtype=torch.int32)
-        self._target_lift_pose = torch.tensor(self.cfg.lift_targets[0], device=self.device).repeat(self.num_envs, 1)
-        # compute reward
-        self._compute_intermediate_values()
-        # print(cp.LYH_DEBUG("reset object state:"), cp.LYH_DEBUG(euler_from_quat(self.object_state[0, 3:7])))
-        self._get_initial_reward()
-        
+
+        ############ last logs ################
         # wandb log
         if self.cfg.enable_wandb:
+            self._wandb.set_data("subtask_index", self._subtask_index.float().mean().item())
             self._wandb.set_data("success", self._successed.float().mean().item() * 100.0)
+            self._wandb.set_data("standby_reward", self.extras['standby_reward'])
             self._wandb.set_data("dist_reward", self.extras['dist_reward'])
             self._wandb.set_data("pose_reward", self.extras['pose_reward'])
             self._wandb.set_data("lift_reward", self.extras['lift_reward'])
@@ -416,60 +461,97 @@ class DexPickPlaceEnv(RLEnv):
         
         # print info
         if self.cfg.env_id_print_data in env_ids and self.common_step_counter > 0:
-            reward_items = ['dist_reward', 'pose_reward', 'lift_reward', 'angl_reward', 'orient_reward', 'act_penalty']
+            reward_items = ['standby_reward', 'dist_reward', 'pose_reward', 'lift_reward', 'angl_reward', 'orient_reward', 'act_penalty']
             total_reward = sum([abs(self.extras[item]) for item in reward_items])
 
             print("\n")
             print("#" * 17, " Statistics", "#" * 17)
-            print(f"env id:   {self.cfg.env_id_print_data}")
+            # print(f"env id:   {self.cfg.env_id_print_data}")
+            print(f"subtask_index: {self._subtask_index.float().mean().item()}")
             print(f"success:  {self._successed.float().mean().item()*100.0:.2f}%")
+            print(f"standby_reward:   {self.extras['standby_reward']:.2f} ({(abs(self.extras['standby_reward']) / total_reward * 100):.2f}%)")
             print(f"dist_reward:      {self.extras['dist_reward']:.2f} ({(abs(self.extras['dist_reward']) / total_reward * 100):.2f}%)")
             print(f"angle_reward:     {self.extras['angl_reward']:.2f} ({(abs(self.extras['angl_reward']) / total_reward * 100):.2f}%)")
             print(f"pose_reward:      {self.extras['pose_reward']:.2f} ({(abs(self.extras['pose_reward']) / total_reward * 100):.2f}%)")
             print(f"lego_up_reward:   {self.extras['lift_reward']:.2f} ({(abs(self.extras['lift_reward']) / total_reward * 100):.2f}%)")
             print(f"orient_reward:    {self.extras['orient_reward']:.2f} ({(abs(self.extras['orient_reward']) / total_reward * 100):.2f}%)")
             print(f"action_penalty:   {self.extras['act_penalty']:.2f} ({(abs(self.extras['act_penalty']) / total_reward * 100):.2f}%)")
+            print(f"total_reward:     {sum([self.extras[item] for item in reward_items]):.2f}")
             print("#" * 15, "Statistics End", "#" * 15,"\n")
             
-            self.extras = {'dist_reward': 0, 'pose_reward': 0, 'lift_reward': 0, 'angl_reward': 0, 'orient_reward': 0, 'act_penalty': 0, 'success': 0}
+            self.extras = {'standby_reward': 0, 'dist_reward': 0, 'pose_reward': 0, 'lift_reward': 0, 'angl_reward': 0, 'orient_reward': 0, 'act_penalty': 0, 'success': 0}
+
+        self._target_init_pose[env_ids, :7] = self._target.data.root_link_state_w[env_ids, :7].clone()
+        self._target_init_pose[:, :3] -= self.scene.env_origins
+        # compute reward
+        self._compute_intermediate_values()
+
+        self._hand_target_pose = torch.zeros_like(self._hand_init_pose)
+        self._reset_task_target(env_ids)
+
+        self._get_initial_reward()
+        
     
-    def _check_shift_subtasks(self):
+    def _reset_task_target(self, env_ids: torch.Tensor):
+        num_envs = len(env_ids)
+        for key, value in self.cfg.reward_func[0].items():
+            self.reward_func_active[key][env_ids] = torch.tensor(value, device=self.device).repeat(num_envs)
+        self._subtask_index[env_ids] = torch.zeros(num_envs, device=self.device, dtype=torch.int32)
+        self._target_lift_pose[env_ids] = torch.tensor(self.cfg.lift_targets[0], device=self.device).repeat(num_envs, 1)
+        self._hand_init_pose[env_ids] = self.hand_base_state[env_ids, :3].clone()
+
+    def _check_shift_subtask(self):
         """
-        1.检查当前子任务是否完成
-        2.如果完成，则更新子任务，包括任务目标和reward fucntion
+        1.检查任务是否已经失败，若失败则重置任务
+        2.检查当前子任务是否完成
+        3.如果完成，则更新子任务，包括任务目标和reward fucntion
         """
-        self.subtask_finished = self._is_success(self._target_lift_pose[:, :3], self.object_state[:, :3])
+        task_failed_env_ids = self._is_task_failed()
+        if len(task_failed_env_ids) > 0:
+            self._reset_task_target(task_failed_env_ids)
+            self._get_initial_reward()
+
+        self.subtask_finished = self._is_subtask_success(self._target_lift_pose[:, :3], self.object_state[:, :3])
         if torch.any(self.subtask_finished):
             # print(cp.LYH_DEBUG("subtask_finished:"), cp.LYH_DEBUG(self.subtask_finished))
             self.subtask_finished = self.subtask_finished & self._task_playing
             # print(cp.LYH_DEBUG("subtask_finished after:"), cp.LYH_DEBUG(self.subtask_finished))
 
+            task_to_next_mask = (self._subtask_index < len(self.cfg.lift_targets) - 1) & self.subtask_finished
             # update subtask object
-            self._subtask_index[self.subtask_finished] += 1
+            self._subtask_index[task_to_next_mask] += 1
             # print(cp.LYH_DEBUG("subtask_index:"), cp.LYH_DEBUG(self._subtask_index))
-            self._task_playing = self._subtask_index < len(self.cfg.lift_targets)
+            self._task_playing = self._subtask_index < len(self.cfg.lift_targets) - 1
             # print(cp.LYH_DEBUG("task_playing:"), cp.LYH_DEBUG(self._task_playing))
             # self._target_lift_pose[self._task_playing] = torch.tensor(self.cfg.lift_targets[self._subtask_index[self._task_playing]], device=self.device)
 
-            task_shift_mask = self._task_playing & self.subtask_finished
+            # update lift target
+            task_shift_mask = self._task_playing & task_to_next_mask
             if torch.any(task_shift_mask):
                 subtask_indices = self._subtask_index[task_shift_mask]
                 lift_targets = torch.tensor([self.cfg.lift_targets[idx] for idx in subtask_indices], device=self.device)
                 self._target_lift_pose[task_shift_mask] = lift_targets
-
-                # print(cp.LYH_DEBUG("target_lift_pose:"), cp.LYH_DEBUG(self._target_lift_pose))
+            
+            # uodate reward function active and hand target pose
+            if torch.any(task_to_next_mask):
+                indices = self._subtask_index[task_to_next_mask]   
+                for key, _ in self.cfg.reward_func[0].items():
+                    reward_active = torch.tensor([self.cfg.reward_func[idx][key] for idx in indices], device=self.device)
+                    self.reward_func_active[key][task_to_next_mask] = reward_active
                 
-                # # align subtask reward
-                # tmp_pre_energy = self._pre_energy[self._task_playing]
-                # _ = self._get_rewards()
-                # self.pretask_rwd[self._task_playing] += tmp_pre_energy - self._pre_energy[self._task_playing]
+                standby_task_mask = self.reward_func_active['standby']
+                self._hand_target_pose = torch.where(
+                    standby_task_mask.unsqueeze(1).expand_as(self._hand_init_pose),
+                    self._hand_init_pose,
+                    torch.zeros_like(self._hand_init_pose)
+                )
                 
                 # reset pre energy
-                # print(cp.LYH_DEBUG("pre_energy:"), cp.LYH_DEBUG(self._pre_energy))
-                _ = self._get_rewards()
-                # print(cp.LYH_DEBUG("pre_energy after:"), cp.LYH_DEBUG(self._pre_energy))
+                self._get_initial_reward()
 
-        
+                # print(cp.green(f"env 0 subtask shift {self._subtask_index[0] - 1} to {self._subtask_index[0]}"))
+            
+                
 
     def _compute_intermediate_values(self):
         self._hand_index = self._finger_tip_index + [self._hand_base_link_index]
@@ -493,6 +575,26 @@ class DexPickPlaceEnv(RLEnv):
         )
     
     def _get_full_observations(self):
+        ### fs version
+        # self._obs = torch.cat(
+        #         (
+        #             # robot state
+        #             unscale(self.dof_pos, self._joint_limit_lower[:, self._robot_index], self._joint_limit_upper[:, self._robot_index]),
+        #             self.cfg.vel_obs_scale * self.dof_vel,
+        #             # object state
+        #             self.object_state[:, :7],
+        #             self.cfg.vel_obs_scale * self.object_state[:, 7:],
+        #             # goal
+        #             # fingertips
+        #             (self.hand_state[:, :, :3] - self.object_state[:, None, :3]).reshape(self.num_envs, -1),
+        #             self.cfg.vel_obs_scale * self.hand_state[:, :, 3:].reshape(self.num_envs, -1),
+        #             # actions
+        #             self.actions,
+        #         ),
+        #         dim=-1,
+        #     )
+
+        ### teacher version, inlcude subtask target
         self._obs = torch.cat(
                 (
                     # robot state
@@ -500,8 +602,11 @@ class DexPickPlaceEnv(RLEnv):
                     self.cfg.vel_obs_scale * self.dof_vel,
                     # object state
                     self.object_state[:, :7],
+                    self.hand_state[:, :, :3].reshape(self.num_envs, -1),
                     self.cfg.vel_obs_scale * self.object_state[:, 7:],
                     # goal
+                    self._target_lift_pose[:, :3],
+                    self._hand_target_pose[:, :3],
                     # fingertips
                     (self.hand_state[:, :, :3] - self.object_state[:, None, :3]).reshape(self.num_envs, -1),
                     self.cfg.vel_obs_scale * self.hand_state[:, :, 3:].reshape(self.num_envs, -1),
@@ -510,12 +615,18 @@ class DexPickPlaceEnv(RLEnv):
                 ),
                 dim=-1,
             )
-    
+
     def _get_initial_reward(self):
-        distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, _ = _compute_rewards(
+        standby_active = self.reward_func_active['standby']
+        position_active = self.reward_func_active['position']
+        grasp_active = self.reward_func_active['grasp']
+        orientation_active = self.reward_func_active['orientation']
+        standby_reward, distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, _ = _compute_rewards(
             self.finger_thumb_state,
             self.finger_index_state,
             self.middle_point_state,
+            self._hand_target_pose,
+            self.hand_base_state[:, :3],
             self._target_init_pose[:, :7],
             self.object_state[:, :7],
             self.actions[:, :self._arm_joint_num],
@@ -523,17 +634,22 @@ class DexPickPlaceEnv(RLEnv):
             self._prev_targets[:, self._hand_real_joint_index],
             self._z_unit_tensor,
             self._target_lift_pose,
+            standby_active,
+            position_active,
+            grasp_active,
+            orientation_active,
         )
         # print(cp.LYH_DEBUG("init target init pose:"), cp.LYH_DEBUG(euler_from_quat(self._target_init_pose[0, 3:7])))
         # print(cp.LYH_DEBUG("init object state:"), cp.LYH_DEBUG(euler_from_quat(self.object_state[0, 3:7])))
         # print(cp.LYH_DEBUG("orientation_reward_init:"), cp.LYH_DEBUG(orientation_reward[0]))
         # orientation_reward = torch.zeros_like(distance_reward)
+        self._pre_standby_reward = standby_reward
         self._pre_distance_reward = distance_reward
         self._pre_pose_reward = pose_reward
         self._pre_angle_reward = angle_reward
         self._pre_lift_reward = lift_reward
         self._pre_orientation_reward = orientation_reward
-        self._pre_energy = distance_reward + pose_reward + angle_reward + lift_reward + orientation_reward
+        self._pre_energy = standby_reward + distance_reward + pose_reward + angle_reward + lift_reward + orientation_reward
     
     def _maker_visualizer(self):
         if self.cfg.enable_marker and self._visualizer is not None:
@@ -697,6 +813,8 @@ def _compute_rewards(
     finger_thumb_state: torch.Tensor,
     finger_index_state: torch.Tensor,
     middle_point_state: torch.Tensor,
+    hand_target_pose: torch.Tensor,
+    hand_base_state: torch.Tensor,
     lego_init_state: torch.Tensor,
     lego_state: torch.Tensor,
     arm_actions: torch.Tensor,
@@ -704,40 +822,47 @@ def _compute_rewards(
     prev_joint_pos_target: torch.Tensor,
     z_unit_tensor: torch.Tensor,
     lift_target_pose: torch.Tensor,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    standby_active: torch.Tensor,
+    position_active: torch.Tensor,
+    grasp_active: torch.Tensor,
+    orientation_active: torch.Tensor,
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     
     lego_init_pos = lego_init_state[:, :3].clone()
     lego_pos = lego_state[:, :3].clone()
     lego_init_rot = lego_init_state[:, 3:7].clone()
     lego_rot = lego_state[:, 3:7].clone()
     
+    ### standby reward
+    standby_reward = torch.exp(-1.0 * torch.norm(hand_base_state - hand_target_pose, p=2, dim=-1)) * 200.0
+    standby_reward = torch.where(standby_active, standby_reward, torch.zeros_like(standby_reward, dtype=standby_reward.dtype))
+    ### grasp reward
     # define dist reward
     fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3]], dim=0)
     finger_dist = torch.norm(lego_pos.unsqueeze(0) - fingertip_pos, p=2, dim=-1).sum(dim=0)
     distance_reward = torch.exp(-5.0 * torch.clamp((finger_dist - 0.05), 0, None))
-    
+    distance_reward = torch.where(grasp_active, distance_reward, torch.zeros_like(distance_reward, dtype=distance_reward.dtype))
     # define pose reward
     pose_dist = tolerance(middle_point_state[:,:3], lego_pos, r=0.016, margin=0.01)
     pose_reward = pose_dist * 6.0
-
+    pose_reward = torch.where(grasp_active, pose_reward, torch.zeros_like(pose_reward, dtype=pose_reward.dtype))
     # define angle reward
     angle_dist = compute_angle_line_plane(finger_thumb_state[:,:3], finger_index_state[:,:3], z_unit_tensor)
     # angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5
     angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 5.0
-    
+    angle_reward = torch.where(grasp_active, angle_reward, torch.zeros_like(angle_reward, dtype=angle_reward.dtype))
+
+    ### position reward
     # define lift reward
     target_pos = lift_target_pose
-    # print("target_pos:", target_pos)
-    # print("lego_init_pos:", lego_init_pos)
     init_dist = torch.norm(lego_init_pos - target_pos, p=2, dim=-1)
-    # print("init_dist:", init_dist)
     goal_dist = torch.norm(lego_pos - target_pos, p=2, dim=-1)
-    # print("goal_dist:", goal_dist)
-    lift_reward = pose_dist * 400.0 * torch.clamp((init_dist - goal_dist), -0.5, None)
-    
-    # define orientation reward
-    orientation_reward =  (- _quat_sin2_loss(lego_init_rot, lego_rot)) * 30.0 * 0
+    lift_reward = 400.0 * torch.clamp((1 - goal_dist), 0.0, None)
+    lift_reward = torch.where(position_active & (~grasp_active | (pose_dist >= 1.0)), lift_reward, torch.zeros_like(lift_reward, dtype=lift_reward.dtype))
 
+    ### orientation reward
+    orientation_reward =  (1 - _quat_sin2_loss(lego_init_rot, lego_rot)) * 100.0
+    orientation_reward = torch.where(orientation_active, orientation_reward, torch.zeros_like(orientation_reward, dtype=orientation_reward.dtype))
     # define action penalty
     action_penalty = 0.001 * torch.sum(arm_actions.pow_(2), dim=-1)
     action_penalty.add_(0.001 * torch.sum(
@@ -745,7 +870,7 @@ def _compute_rewards(
         dim=-1
     ))
     
-    return distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, action_penalty
+    return standby_reward, distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, action_penalty
 
 @torch.jit.script
 def _compute_values(

@@ -18,7 +18,9 @@
                 "--num_envs",
                 "1",
                 "--checkpoint",
-                "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-17_11-52-02/nn/pick_place_lego.pth",
+                "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-25_10-44-03/nn/pick_place_lego.pth",
+                // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-19_20-37-05/nn/last_pick_place_lego_ep_9000_rew_145.76175.pth"
+                // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-18_17-40-32/nn/pick_place_lego.pth", // lift->go right->down
                 // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-16_10-58-53/nn/pick_place_lego.pth", // best fs version
                 // "--headless",
                 // "--enable_cameras",
@@ -46,13 +48,17 @@
                 "--task",
                 "Psi-RL-Pick-Place-Lego",
                 "--num_envs",
-                "1024",
+                "2048",
                 "--seed",
                 "17",
                 // "--headless",
                 // "--enable_cameras",
                 "--enable_random",
                 "--enable_wandb",
+                "--checkpoint",
+                "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-24_17-39-58/nn/pick_place_lego.pth"
+                // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-19_20-12-16/nn/pick_place_lego.pth"
+                // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-18_17-40-32/nn/pick_place_lego.pth", // lift->go right->down
                 // "--sample_step",
                 // "1",
                 // "--async_reset",
