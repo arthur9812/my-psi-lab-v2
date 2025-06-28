@@ -61,7 +61,7 @@ SCENE_CFG = SceneCfg(
                 prim_path = "/World/envs/env_[0-9]+/Robot",
                 spawn = sim_utils.UsdFileCfg(
                     # usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned.usd",
-                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned_Flattened.usd",
+                    usd_path=PSILAB_USD_ASSET_DIR+"/robots/PsiRobot_DC_01/Version_4.0/PsiRobot_DC_01_Tuned_Flattened_3FinAligned.usd",
                     activate_contact_sensors = True,
 
                     articulation_props=sim_utils.ArticulationRootPropertiesCfg(
@@ -380,6 +380,10 @@ SCENE_CFG = SceneCfg(
         marker_cfg = VisualizationMarkersCfg(
             prim_path="/Visuals/Markers",
             markers={
+                "target_position": sim_utils.UsdFileCfg(
+                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                    scale=(0.05, 0.05, 0.05),
+                ),
                 "thumb": sim_utils.UsdFileCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
                     scale=(0.01, 0.01, 0.01),
@@ -404,10 +408,10 @@ SCENE_CFG = SceneCfg(
                     usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
                     scale=(0.04, 0.04, 0.04),
                 ),
-                "middle_point": sim_utils.UsdFileCfg(
-                    usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
-                    scale=(0.01, 0.01, 0.01),
-                ),
+                # "middle_point": sim_utils.UsdFileCfg(
+                #     usd_path=PSILAB_USD_ASSET_DIR + "/markers/frame_prim.usd",
+                #     scale=(0.01, 0.01, 0.01),
+                # ),
 
 
             },

@@ -6,6 +6,7 @@
 """ Common Modules  """ 
 from __future__ import annotations
 import torch
+from torch.linalg import svd
 import warnings
 from datetime import datetime
 from typing import Tuple
@@ -43,8 +44,8 @@ class DexPickPlaceEnvCfg(RLEnvCfg):
     decimation = 2
     action_scale = 0.5
     action_space = 13
-    observation_space = 154
-    state_space = 154
+    observation_space = 181
+    state_space = 181
 
     # other params from gym
     arm_hand_dof_speed_scale = 20.0
@@ -202,9 +203,12 @@ class DexPickPlaceEnv(RLEnv):
             self._wandb = WandbLog()
             project = "PsiLab_v2.0_RL"
             name = "Pick-Place-Lego" + datetime.strftime(datetime.now(), '%m%d_%H%M%S')
-            tags = ["successed cond", "subtask shift", "target observ2"]
+            tags = ["successed cond", "subtask shift"]
             tags.append("standby reward")
-            tags.append("orientation reward")
+            # tags.append("orientation reward")
+            # tags.append("support polygon")
+            # tags.append("force closure")
+            # tags.append("finger pointing")
             self._wandb.init_wandb(project, name, tags)
             self._wandb.init_artifact("train_model", "model")
             parent_dir = Path(__file__).resolve().parent
@@ -282,6 +286,7 @@ class DexPickPlaceEnv(RLEnv):
         standby_reward, distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, action_penalty = _compute_rewards(
             self.finger_thumb_state,
             self.finger_index_state,
+            self.finger_middle_state,
             self.middle_point_state,
             self._hand_target_pose,
             self.hand_base_state[:, :3],
@@ -297,8 +302,10 @@ class DexPickPlaceEnv(RLEnv):
             grasp_active,
             orientation_active,
         )
+        # print(cp.blue("pose_reward:"+str(pose_reward.mean().item())+",dist_reward:"+str(distance_reward.mean().item())+",standby_reward:"+str(standby_reward.mean().item())+",lift_reward:"+str(lift_reward.mean().item())))
         # print(cp.red("self.arm_hand_target_pose:"), cp.red(self._arm_hand_target_pose[0].to('cpu').numpy().tolist()))
         total_reward = (standby_reward + distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward - self._pre_energy) - action_penalty
+        # print(cp.yellow("total reward:"), cp.yellow(total_reward.mean().item()))
         self.extras['standby_reward'] += (standby_reward.mean() - self._pre_standby_reward.mean())  # type: ignore
         self.extras['dist_reward'] += (distance_reward.mean() - self._pre_distance_reward.mean())  # type: ignore
         self.extras['pose_reward'] += (pose_reward.mean() - self._pre_pose_reward.mean())# type: ignore
@@ -341,7 +348,7 @@ class DexPickPlaceEnv(RLEnv):
     def _is_subtask_success(self, target_pos: torch.Tensor, object_pos: torch.Tensor, ) -> torch.Tensor:
         
         grasp_active = self.reward_func_active['grasp']
-        grasp_check = (self._pre_distance_reward[:] > 0.8) & (self._pre_pose_reward[:] >= 6.0)
+        grasp_check = (self._pre_distance_reward[:] > 0.79) & (self._pre_pose_reward[:] >= 6.0)
         grasp_success = torch.where(grasp_active, grasp_check, torch.ones_like(grasp_check, dtype=torch.bool))
 
         standby_active = self.reward_func_active['standby']
@@ -359,7 +366,7 @@ class DexPickPlaceEnv(RLEnv):
         return grasp_success & standby_success & position_success & orientation_success
 
     def _is_task_failed(self) -> torch.Tensor:
-        task_failed_env_ids = (self.object_state[:, 2] - self._target_init_pose[:, 2] > 0.05) & (self._pre_pose_reward <= 1.0) & (self._subtask_index > 0) & self.reward_func_active['grasp']
+        task_failed_env_ids = (self.object_state[:, 2] - self._target_init_pose[:, 2] > 0.05) & (self._pre_pose_reward <= 4.0) & (self._subtask_index > 0) & self.reward_func_active['grasp']
         task_failed_env_ids = torch.nonzero(task_failed_env_ids, as_tuple=False).squeeze(-1)
         return task_failed_env_ids
 
@@ -597,24 +604,42 @@ class DexPickPlaceEnv(RLEnv):
         #         ),
         #         dim=-1,
         #     )
-
+        self.finger_normal_vec = quat_rotate_vector(self.hand_state[:,:3,3:7], torch.tensor([1., 0., 0.],device=self.device))
+        self.fingertip_point =  self.object_state[:, :3].unsqueeze(1) - self.hand_state[:,:3,:3]
+        cos_theta = (self.finger_normal_vec * self.fingertip_point).sum(-1) 
         ### teacher version, inlcude subtask target
         self._obs = torch.cat(
                 (
                     # robot state
+                    # 关节角度13个
                     unscale(self.dof_pos, self._joint_limit_lower[:, self._robot_index], self._joint_limit_upper[:, self._robot_index]),
+                    # 关节速度
                     self.cfg.vel_obs_scale * self.dof_vel,
+
                     # object state
+                    # 物体位置、旋转7个
                     self.object_state[:, :7],
-                    self.hand_state[:, :, :3].reshape(self.num_envs, -1),
+                    # 手位置 6*7=42个
+                    self.hand_state[:, :, :7].reshape(self.num_envs, -1),
+                    # 物体速度 7个
                     self.cfg.vel_obs_scale * self.object_state[:, 7:],
+
                     # goal
+                    # 物体目标位置 3个
                     self._target_lift_pose[:, :3],
+                    # 手目标位置 3个
                     self._hand_target_pose[:, :3],
+
                     # fingertips
+                    # 手与目标位置差 6*3=18个
                     (self.hand_state[:, :, :3] - self.object_state[:, None, :3]).reshape(self.num_envs, -1),
+                    # 手速度
                     self.cfg.vel_obs_scale * self.hand_state[:, :, 3:].reshape(self.num_envs, -1),
+                    # 指尖法向量夹角cos值 3个
+                    cos_theta,
+                    
                     # actions
+                    # 关节角度13个
                     self.actions,
                 ),
                 dim=-1,
@@ -628,6 +653,7 @@ class DexPickPlaceEnv(RLEnv):
         standby_reward, distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, _ = _compute_rewards(
             self.finger_thumb_state,
             self.finger_index_state,
+            self.finger_middle_state,
             self.middle_point_state,
             self._hand_target_pose,
             self.hand_base_state[:, :3],
@@ -667,23 +693,25 @@ class DexPickPlaceEnv(RLEnv):
 
             # refresh visualize and marker
             marker_pos = torch.cat((
+                self._final_target_pose[0:1,:3], # 目标位置
                 thumb_tip_link_state[0:1,:3],
                 index_tip_link_state[0:1,:3],
                 middle_tip_link_state[0:1,:3],
                 ring_tip_link_state[0:1,:3],
                 pinky_tip_link_state[0:1,:3],
                 target_state[0:1,:3],
-                grasp_fingers_pos[0:1,:3]
+                # grasp_fingers_pos[0:1,:3]
                 ),0)
             
             marker_rot = torch.cat((
+                torch.tensor([[1., 0., 0., 0.]], device=self.device),
                 thumb_tip_link_state[0:1,3:7],
                 index_tip_link_state[0:1,3:7],
                 middle_tip_link_state[0:1,3:7],
                 ring_tip_link_state[0:1,3:7],
                 pinky_tip_link_state[0:1,3:7],
                 target_state[0:1,3:7],
-                torch.zeros((1,4),device=self.device)
+                # torch.zeros((1,4),device=self.device)
                 ),0)
 
             self._visualizer.visualize(marker_pos, marker_rot)
@@ -722,6 +750,169 @@ def euler_from_quat(q):
     return f"Euler XYZ (deg) → roll: {roll:.2f},  pitch: {pitch:.2f},  yaw: {yaw:.2f}"
 
 # helper functions
+@torch.jit.script
+def planar_force_closure(
+    p: torch.Tensor,            # (B,3,3)  指尖位置  (x,y,z)
+    n: torch.Tensor,            # (B,3,3)  指尖内法向 (单位向量)
+    eps0: float = 0.05          # 缩放参数,tanh横向压缩
+) -> torch.Tensor:              # (B,)      批量奖励
+    """
+    6d扳手力闭包的简化模型[Fx,Fy,Fz,τx,τy,τz]->[Fx,Fy,τz]
+    只考虑xy平面的扰动
+    """
+    # ---- 1. 取 x、y 分量 ----
+    n_xy = n[:, :, :2]                 # (B,3,2)  提取法向的 x、y
+    px, py = p[:, :, 0], p[:, :, 1]    # (B,3)    指尖 x、y 坐标
+    wx, wy = n_xy[:, :, 0], n_xy[:, :, 1]  # (B,3) 法向的 x、y 分量
+
+    # ---- 2. 计算 z 方向力矩 τ_z = (p × n)_z ----
+    tau_z = px * wy - py * wx          # (B,3)    行列式公式
+
+    # ---- 3. 拼成平面扳手列 w_planar ----
+    w_planar = torch.stack([wx, wy, tau_z], dim=-1)  # (B,3,3)
+
+    # ---- 4. 列向量单位化 ----
+    w_planar = torch.nn.functional.normalize(w_planar, dim=-1)
+
+    # ---- 5. 变成 3×3 抓取矩阵 G ----
+    G = w_planar.permute(0, 2, 1)      # (B,3,3)  shape: (B, 行=3, 列=3)
+
+    # ---- 6. 奇异值分解 SVD ----
+    _, S, _ = svd(G)                   # S: (B,3)  降序奇异值
+
+    # ---- 7. 提取最小奇异值 σ_min ----
+    sigma_min = S[:, -1]               # (B,)     每批次最小值
+
+    # ---- 8. 平滑映射成奖励 ----
+    return torch.tanh(sigma_min / eps0)
+
+@torch.jit.script
+def quat_to_rotmat(q: torch.Tensor) -> torch.Tensor:
+    """
+    将四元数 (w,x,y,z) 转为旋转矩阵。
+    参数
+    ----
+    q : Tensor[..., 4]
+
+    返回
+    ----
+    R : Tensor[..., 3, 3]
+    """
+    eps: float = 1e-8
+    # --- 归一化 ---
+    norm = torch.norm(q, p=2, dim=-1, keepdim=True)
+    q = q / torch.clamp(norm, min=eps)
+
+    # 拆分分量（TorchScript 不支持一次性“多变量解包”）
+    w = q[..., 0]
+    x = q[..., 1]
+    y = q[..., 2]
+    z = q[..., 3]
+
+    # --- 预计算重复项 ---
+    xx, yy, zz = x * x, y * y, z * z
+    xy, xz, yz = x * y, x * z, y * z
+    wx, wy, wz = w * x, w * y, w * z
+    two: float = 2.0  # 方便和论文公式对照
+
+    # 每个元素都是 [...]-shaped Tensor
+    r00 = 1.0 - two * (yy + zz)
+    r01 = two * (xy - wz)
+    r02 = two * (xz + wy)
+
+    r10 = two * (xy + wz)
+    r11 = 1.0 - two * (xx + zz)
+    r12 = two * (yz - wx)
+
+    r20 = two * (xz - wy)
+    r21 = two * (yz + wx)
+    r22 = 1.0 - two * (xx + yy)
+
+    # --- 组装旋转矩阵 ---
+    R = torch.stack((
+            torch.stack((r00, r01, r02), dim=-1),
+            torch.stack((r10, r11, r12), dim=-1),
+            torch.stack((r20, r21, r22), dim=-1)
+        ), dim=-2)          # 最后两维变成 3×3
+    return R
+
+@torch.jit.script
+def quat_rotate_vector(q: torch.Tensor,          # [..., 4]
+                       v: torch.Tensor           # [..., 3]
+                      ) -> torch.Tensor:         # [..., 3]
+    """
+    用四元数 q 旋转任意向量 v。
+    q 最后维度是 (w,x,y,z)；q 与 v 的批量维可广播。
+    """
+    R = quat_to_rotmat(q)                        # [..., 3, 3]
+    v_expanded = v.unsqueeze(-1)                 # [..., 3, 1]
+    v_rot = torch.matmul(R, v_expanded)          # [..., 3, 1]
+    return v_rot.squeeze(-1)                     # [..., 3]
+
+@torch.jit.script
+def cross2d(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+    """ 2-D 向量叉积（返回标量），支持 `(…,2)` broadcast """
+    return a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]
+
+@torch.jit.script
+def rotate_cw(x: torch.Tensor) -> torch.Tensor:
+    # 顺时针旋转 90°： (x,y)->(y,-x)
+    return torch.stack((x[:, 1], -x[:, 0]), dim=1)
+    
+@torch.jit.script
+def compute_support_polygon(tip_xy: torch.Tensor, 
+                            com_xy: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """
+    使用拇指、食指、中指凸包support polygon计算抓取姿态的reward
+
+    Args:
+        tip_xy: 三指xy面投影, shape (batch, 3, 2)
+        com_xy: 目标质心xy面投影, shape (batch, 2)
+    
+    Returns:
+        d_signed: 质心与凸包的带符号距离, 负表示在凸包内, 正表示在凸包外, 0表示在凸包上, shape (batch,)
+        inradius: 凸包内半径, shape (batch,)
+        incenter: 凸包内心xy坐标, shape (batch, 2)
+    """
+    # 保证三指凸包顺序为逆时针，以方便求外法向量
+    area = cross2d(tip_xy[:,1]-tip_xy[:,0], tip_xy[:,2]-tip_xy[:,0])
+    swap = area < 0
+    if swap.any():
+        perm = torch.tensor([0, 2, 1], device=tip_xy.device)   # finger 0,2,1
+        tip_xy[swap] = tip_xy[swap][:, perm, :]                # (…,3,2) -> (…,3,2)
+
+    # 三条边
+    v0, v1, v2 = tip_xy[:, 0, :], tip_xy[:, 1, :], tip_xy[:, 2, :]  # (B, 2)
+    e0, e1, e2 = v1 - v0, v2 - v1, v0 - v2  # (B, 2)
+
+    # 计算外法向量
+    n0, n1, n2 = rotate_cw(e0), rotate_cw(e1), rotate_cw(e2)  # (B, 2)
+    
+    # 半空间方程中的常数项
+    b0 = -(n0 * v0).sum(dim=-1)
+    b1 = -(n1 * v1).sum(dim=-1)
+    b2 = -(n2 * v2).sum(dim=-1)
+
+    # 使用半空间方程计算距离，距离为负表示在凸包内，距离为正表示在凸包外，距离为0表示在凸包上
+    l0 = ((n0 * com_xy).sum(dim=-1) + b0) / torch.norm(n0, p=2, dim=-1)
+    l1 = ((n1 * com_xy).sum(dim=-1) + b1) / torch.norm(n1, p=2, dim=-1)
+    l2 = ((n2 * com_xy).sum(dim=-1) + b2) / torch.norm(n2, p=2, dim=-1)
+    d_signed = torch.max(torch.stack([l0, l1, l2], 1), 1).values  # (B,)
+
+    # 计算凸包三角形内半径
+    a = torch.norm(e1, dim=1)      # |v1-v2|  — 边长 a (对顶 v0)
+    b = torch.norm(e2, dim=1)      # |v2-v0|  — 边长 b (对顶 v1)
+    c = torch.norm(e0, dim=1)      # |v0-v1|  — 边长 c (对顶 v2)
+    peri = a + b + c        # 周长
+    incenter = (a[:, None] * v0 +
+                b[:, None] * v1 +
+                c[:, None] * v2) / peri[:, None]             # 内心(B,2)
+    area2 = cross2d(v1 - v0, v2 - v0).abs()  # 2*Area
+    inradius = area2 / peri                  # r = 2A / (a+b+c)
+    
+    return d_signed, inradius, incenter
+
 @torch.jit.script
 def tolerance(x: torch.Tensor, y: torch.Tensor, r: float, margin: float = 0.0, 
               value_at_margin: float = 0.1) -> torch.Tensor:
@@ -816,6 +1007,7 @@ def _quat_sin2_loss(a: torch.Tensor, b: torch.Tensor):
 def _compute_rewards(
     finger_thumb_state: torch.Tensor,
     finger_index_state: torch.Tensor,
+    finger_middle_state: torch.Tensor,
     middle_point_state: torch.Tensor,
     hand_target_pose: torch.Tensor,
     hand_base_state: torch.Tensor,
@@ -840,16 +1032,52 @@ def _compute_rewards(
     ### standby reward
     standby_reward = torch.exp(-1.0 * torch.norm(hand_base_state - hand_target_pose, p=2, dim=-1)) * 200.0
     standby_reward = torch.where(standby_active, standby_reward, torch.zeros_like(standby_reward, dtype=standby_reward.dtype))
+
     ### grasp reward
     # define dist reward
-    fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3]], dim=0)
+    fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=0)
+    # fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3]], dim=0)
     finger_dist = torch.norm(lego_pos.unsqueeze(0) - fingertip_pos, p=2, dim=-1).sum(dim=0)
     distance_reward = torch.exp(-5.0 * torch.clamp((finger_dist - 0.05), 0, None))
     distance_reward = torch.where(grasp_active, distance_reward, torch.zeros_like(distance_reward, dtype=distance_reward.dtype))
-    # define pose reward
+    
+    # # define force closure reward
+    # thumb_normal_vec = quat_rotate_vector(finger_thumb_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_thumb_state.device))
+    # index_normal_vec = quat_rotate_vector(finger_index_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_index_state.device))
+    # middle_normal_vec = quat_rotate_vector(finger_middle_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_middle_state.device))
+    # normal_vec = torch.stack([thumb_normal_vec, index_normal_vec, middle_normal_vec], dim=-2)
+    # fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=1)
+    # fc_reward = planar_force_closure(fingertip_pos, normal_vec)
+    # fc_reward = (torch.clamp(fc_reward, 0.0, 0.5) / 0.5)
+
+    # # degine finger pointing reward
+    # fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=1)
+    # fingertip_point = lego_pos.unsqueeze(1) - fingertip_pos
+    # fingertip_point = fingertip_point / (fingertip_point.norm(p=2, dim=-1, keepdim=True) + 1e-9)
+    # cos_theta = (normal_vec * fingertip_point).sum(-1)  
+    # pointing_reward = torch.clamp(cos_theta, 0.0, 0.8) / 0.8
+    # pointing_reward = pointing_reward.min(dim=-1).values * 0.5
+
+    # # define 3finger hight reward
+    # mean_hight = (finger_index_state[:,2] + finger_middle_state[:,2]) / 2.0
+    # delta_hight = torch.abs(mean_hight - lego_pos[:,2])
+    # hight_reward = 1 - (torch.clamp(delta_hight, 0.0, 0.02) / 0.02)
+
+    # # define pose reward
+    # fingertip_pos_xy = torch.stack([finger_thumb_state[:,:2], finger_index_state[:,:2], finger_middle_state[:,:2]], dim=1)
+    # d_signed, inradius, _ = compute_support_polygon(fingertip_pos_xy, lego_pos[:, :2])
+    # sp_reward = torch.where(d_signed < 0., torch.abs(d_signed) / (inradius + 1e-6), 0.0)
+    # sp_reward = torch.clamp(sp_reward, 0.0, 0.1) / 0.1# 距离内心距离为半个内半径以内时，reward不再增长
+
+    # pose_reward = 5.0 * hight_reward * sp_reward + pointing_reward
+    # pose_reward = torch.where(grasp_active, pose_reward, torch.zeros_like(pose_reward, dtype=pose_reward.dtype))
+    
+    # define middle finger pose
+    # middle_dist = 
     pose_dist = tolerance(middle_point_state[:,:3], lego_pos, r=0.016, margin=0.01)
     pose_reward = pose_dist * 6.0
     pose_reward = torch.where(grasp_active, pose_reward, torch.zeros_like(pose_reward, dtype=pose_reward.dtype))
+
     # define angle reward
     angle_dist = compute_angle_line_plane(finger_thumb_state[:,:3], finger_index_state[:,:3], z_unit_tensor)
     angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5
@@ -867,13 +1095,13 @@ def _compute_rewards(
     ### orientation reward
     orientation_reward =  (1 - _quat_sin2_loss(lego_init_rot, lego_rot)) * 100.0
     orientation_reward = torch.where(orientation_active, orientation_reward, torch.zeros_like(orientation_reward, dtype=orientation_reward.dtype))
+    
     # define action penalty
     action_penalty = 0.001 * torch.sum(arm_actions.pow_(2), dim=-1)
     action_penalty.add_(0.001 * torch.sum(
         joint_pos_target.sub_(prev_joint_pos_target).pow_(2), 
         dim=-1
     ))
-    
     return standby_reward, distance_reward, pose_reward, angle_reward, lift_reward, orientation_reward, action_penalty
 
 @torch.jit.script
