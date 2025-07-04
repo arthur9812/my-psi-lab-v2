@@ -344,7 +344,7 @@ class DexPickPlaceEnv(RLEnv):
     def _is_subtask_success(self, target_pos: torch.Tensor, object_pos: torch.Tensor, ) -> torch.Tensor:
         
         grasp_active = self.reward_func_active['grasp']
-        grasp_check = (self._pre_distance_reward[:] > 0.7) & (self._pre_pose_reward[:] >= 6.5)
+        grasp_check = (self._pre_distance_reward[:] > 0.79) & (self._pre_pose_reward[:] >= 6.0)
         grasp_success = torch.where(grasp_active, grasp_check, torch.ones_like(grasp_check, dtype=torch.bool))
 
         standby_active = self.reward_func_active['standby']
@@ -362,7 +362,7 @@ class DexPickPlaceEnv(RLEnv):
         return grasp_success & standby_success & position_success & orientation_success
 
     def _is_task_failed(self) -> torch.Tensor:
-        task_failed_env_ids = (self.object_state[:, 2] - self._target_init_pose[:, 2] > 0.05) & (self._pre_pose_reward <= 1.0) & (self._subtask_index > 0) & self.reward_func_active['grasp']
+        task_failed_env_ids = (self.object_state[:, 2] - self._target_init_pose[:, 2] > 0.05) & (self._pre_pose_reward <= 4.0) & (self._subtask_index > 0) & self.reward_func_active['grasp']
         task_failed_env_ids = torch.nonzero(task_failed_env_ids, as_tuple=False).squeeze(-1)
         return task_failed_env_ids
 
@@ -600,11 +600,10 @@ class DexPickPlaceEnv(RLEnv):
         #         ),
         #         dim=-1,
         #     )
-
-        ### teacher version, inlcude subtask target
         self.finger_normal_vec = quat_rotate_vector(self.hand_state[:,:3,3:7], torch.tensor([1., 0., 0.],device=self.device))
         self.fingertip_point =  self.object_state[:, :3].unsqueeze(1) - self.hand_state[:,:3,:3]
         cos_theta = (self.finger_normal_vec * self.fingertip_point).sum(-1) 
+        ### teacher version, inlcude subtask target
         self._obs = torch.cat(
                 (
                     # robot state
@@ -1038,21 +1037,21 @@ def _compute_rewards(
     distance_reward = torch.where(grasp_active, distance_reward, torch.zeros_like(distance_reward, dtype=distance_reward.dtype))
     
     # # define force closure reward
-    thumb_normal_vec = quat_rotate_vector(finger_thumb_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_thumb_state.device))
-    index_normal_vec = quat_rotate_vector(finger_index_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_index_state.device))
-    middle_normal_vec = quat_rotate_vector(finger_middle_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_middle_state.device))
-    normal_vec = torch.stack([thumb_normal_vec, index_normal_vec, middle_normal_vec], dim=-2)
+    # thumb_normal_vec = quat_rotate_vector(finger_thumb_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_thumb_state.device))
+    # index_normal_vec = quat_rotate_vector(finger_index_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_index_state.device))
+    # middle_normal_vec = quat_rotate_vector(finger_middle_state[:,3:7], torch.tensor([1., 0., 0.],device=finger_middle_state.device))
+    # normal_vec = torch.stack([thumb_normal_vec, index_normal_vec, middle_normal_vec], dim=-2)
     # fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=1)
     # fc_reward = planar_force_closure(fingertip_pos, normal_vec)
     # fc_reward = (torch.clamp(fc_reward, 0.0, 0.5) / 0.5)
 
-    # degine finger pointing reward
-    fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=1)
-    fingertip_point = lego_pos.unsqueeze(1) - fingertip_pos
-    fingertip_point = fingertip_point / (fingertip_point.norm(p=2, dim=-1, keepdim=True) + 1e-9)
-    cos_theta = (normal_vec * fingertip_point).sum(-1)  
-    pointing_reward = torch.clamp(cos_theta, 0.0, 0.8) / 0.8
-    pointing_reward = pointing_reward.min(dim=-1).values * 0.5
+    # # degine finger pointing reward
+    # fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=1)
+    # fingertip_point = lego_pos.unsqueeze(1) - fingertip_pos
+    # fingertip_point = fingertip_point / (fingertip_point.norm(p=2, dim=-1, keepdim=True) + 1e-9)
+    # cos_theta = (normal_vec * fingertip_point).sum(-1)  
+    # pointing_reward = torch.clamp(cos_theta, 0.0, 0.8) / 0.8
+    # pointing_reward = pointing_reward.min(dim=-1).values * 0.5
 
     # # define 3finger hight reward
     # mean_hight = (finger_index_state[:,2] + finger_middle_state[:,2]) / 2.0
@@ -1068,14 +1067,16 @@ def _compute_rewards(
     # pose_reward = 5.0 * hight_reward * sp_reward + pointing_reward
     # pose_reward = torch.where(grasp_active, pose_reward, torch.zeros_like(pose_reward, dtype=pose_reward.dtype))
     
+    # define middle finger pose
+    # middle_dist = 
     pose_dist = tolerance(middle_point_state[:,:3], lego_pos, r=0.016, margin=0.01)
-    pose_reward = pose_dist * 6.0 + pointing_reward
+    pose_reward = pose_dist * 6.0
     pose_reward = torch.where(grasp_active, pose_reward, torch.zeros_like(pose_reward, dtype=pose_reward.dtype))
 
     # define angle reward
     angle_dist = compute_angle_line_plane(finger_thumb_state[:,:3], finger_index_state[:,:3], z_unit_tensor)
-    angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5
-    # angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 5.0
+    # angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5
+    angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.0
     angle_reward = torch.where(grasp_active, angle_reward, torch.zeros_like(angle_reward, dtype=angle_reward.dtype))
 
     ### position reward
