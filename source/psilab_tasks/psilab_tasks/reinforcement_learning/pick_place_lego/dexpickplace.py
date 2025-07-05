@@ -37,7 +37,7 @@ class DexPickPlaceEnvCfg(RLEnvCfg):
     """Configuration for RL environment."""
 
     # params
-    max_episode_length = 384
+    max_episode_length = 512
     # max_episode_length = 1024
     episode_length_s = 1.0 * max_episode_length / 60.0
     decimation = 2
@@ -207,7 +207,7 @@ class DexPickPlaceEnv(RLEnv):
             # tags.append("orientation reward")
             # tags.append("support polygon")
             # tags.append("force closure")
-            tags.append("finger pointing")
+            # tags.append("finger pointing")
             self._wandb.init_wandb(project, name, tags)
 
         # initialize Timer
@@ -1085,7 +1085,7 @@ def _compute_rewards(
     init_dist = torch.norm(lego_init_pos - target_pos, p=2, dim=-1)
     goal_dist = torch.norm(lego_pos - target_pos, p=2, dim=-1)
     lift_reward = 400.0 * torch.clamp((1 - goal_dist), 0.0, None)
-    lift_reward = torch.where(position_active & (~grasp_active | (pose_dist >= 1.)), lift_reward, torch.zeros_like(lift_reward, dtype=lift_reward.dtype))
+    lift_reward = torch.where(position_active & (~grasp_active | (pose_dist >= 4.0)), lift_reward, torch.zeros_like(lift_reward, dtype=lift_reward.dtype))
 
     ### orientation reward
     orientation_reward =  (1 - _quat_sin2_loss(lego_init_rot, lego_rot)) * 100.0
