@@ -298,7 +298,7 @@ class DexPickPlaceEnv(RLEnv):
             grasp_active,
             orientation_active,
         )
-        # print(cp.LYH_DEBUG("pose_reward:"), cp.LYH_DEBUG(pose_reward.mean().item()),cp.LYH_DEBUG("dist reward:"), cp.LYH_DEBUG(distance_reward.mean().item()))
+        # print(cp.blue("pose_reward:"+str(pose_reward.mean().item())+",dist_reward:"+str(distance_reward.mean().item())+",standby_reward:"+str(standby_reward.mean().item())+",lift_reward:"+str(lift_reward.mean().item())))
         # print(cp.red("self.arm_hand_target_pose:"), cp.red(self._arm_hand_target_pose[0].to('cpu').numpy().tolist()))
         total_reward = (standby_reward + distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward - self._pre_energy) - action_penalty
         # print(cp.yellow("total reward:"), cp.yellow(total_reward.mean().item()))

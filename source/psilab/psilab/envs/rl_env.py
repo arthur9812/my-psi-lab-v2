@@ -439,7 +439,7 @@ class RLEnv(gym.Env):
 
 
         self.reward_buf = self._get_rewards()
-        # print(cp.yellow(f"reward_buf: {self.reward_buf[0].to('cpu').numpy()}"))
+        # print(cp.yellow(f"reward_buf: {self.reward_buf[0].to('cpu').numpy():.6f}"))
         # get_reward_end = time.time()
 
         # -- reset envs that terminated/timed-out and log the episode information
