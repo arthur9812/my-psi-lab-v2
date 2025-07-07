@@ -1031,7 +1031,8 @@ def _compute_rewards(
 
     ### grasp reward
     # define dist reward
-    fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=0)
+    # fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3], finger_middle_state[:,:3]], dim=0)
+    fingertip_pos = torch.stack([finger_thumb_state[:,:3], finger_index_state[:,:3]], dim=0)
     finger_dist = torch.norm(lego_pos.unsqueeze(0) - fingertip_pos, p=2, dim=-1).sum(dim=0)
     distance_reward = torch.exp(-5.0 * torch.clamp((finger_dist - 0.05), 0, None))
     distance_reward = torch.where(grasp_active, distance_reward, torch.zeros_like(distance_reward, dtype=distance_reward.dtype))
