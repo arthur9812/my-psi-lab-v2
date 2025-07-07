@@ -319,6 +319,9 @@ class DexPickPlaceEnv(RLEnv):
         self._pre_orientation_reward = orientation_reward
         self._pre_energy = standby_reward + distance_reward + pose_reward + lift_reward + angle_reward + orientation_reward
 
+        # print contact force
+        for item,contact_sensor in self._contact_sensors.items():
+            print(item,":",contact_sensor.data.net_forces_w.mean(dim=[1,2]))
         return total_reward
 
     def _get_dones(self) -> tuple[torch.Tensor, torch.Tensor]:
