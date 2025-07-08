@@ -29,6 +29,7 @@ from psilab.utils.timer_utils import Timer
 from psilab.utils.data_collect_utils import save_data,save_data_muilt_env
 from psilab.eval.grasp_rigid import eval_fail, eval_success
 import psilab.utils.color_print as cp
+from pathlib import Path
 
 import numpy as np
 @configclass
@@ -36,7 +37,7 @@ class DexPickPlaceEnvCfg(RLEnvCfg):
     """Configuration for RL environment."""
 
     # params
-    max_episode_length = 384
+    max_episode_length = 256
     # max_episode_length = 1024
     episode_length_s = 1.0 * max_episode_length / 60.0
     decimation = 2
@@ -205,6 +206,9 @@ class DexPickPlaceEnv(RLEnv):
             tags.append("standby reward")
             tags.append("orientation reward")
             self._wandb.init_wandb(project, name, tags)
+            self._wandb.init_artifact("train_model", "model")
+            parent_dir = Path(__file__).resolve().parent
+            self._wandb.upload_artifacts_from_path("model", str(parent_dir))
 
         # initialize Timer
         self._timer = Timer()
@@ -848,8 +852,8 @@ def _compute_rewards(
     pose_reward = torch.where(grasp_active, pose_reward, torch.zeros_like(pose_reward, dtype=pose_reward.dtype))
     # define angle reward
     angle_dist = compute_angle_line_plane(finger_thumb_state[:,:3], finger_index_state[:,:3], z_unit_tensor)
-    # angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5
-    angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 5.0
+    angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 0.5
+    # angle_reward = torch.exp(-1.0 * torch.abs(angle_dist)) * 5.0
     angle_reward = torch.where(grasp_active, angle_reward, torch.zeros_like(angle_reward, dtype=angle_reward.dtype))
 
     ### position reward
@@ -857,7 +861,7 @@ def _compute_rewards(
     target_pos = lift_target_pose
     init_dist = torch.norm(lego_init_pos - target_pos, p=2, dim=-1)
     goal_dist = torch.norm(lego_pos - target_pos, p=2, dim=-1)
-    lift_reward = 400.0 * torch.clamp((1 - goal_dist), 0.0, None)
+    lift_reward = 400.0 * torch.clamp((init_dist - goal_dist), -0.5, None)
     lift_reward = torch.where(position_active & (~grasp_active | (pose_dist >= 1.0)), lift_reward, torch.zeros_like(lift_reward, dtype=lift_reward.dtype))
 
     ### orientation reward

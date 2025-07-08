@@ -55,8 +55,8 @@
                 // "--enable_cameras",
                 "--enable_random",
                 "--enable_wandb",
-                "--checkpoint",
-                "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-24_17-39-58/nn/pick_place_lego.pth"
+                // "--checkpoint",
+                // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-24_17-39-58/nn/pick_place_lego.pth"
                 // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-19_20-12-16/nn/pick_place_lego.pth"
                 // "/home/ubuntu/psi-lab-v2/logs/rl_games/pick_place_lego/2025-06-18_17-40-32/nn/pick_place_lego.pth", // lift->go right->down
                 // "--sample_step",

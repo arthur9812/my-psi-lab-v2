@@ -25,6 +25,14 @@ class WandbLog(metaclass=SingletonMeta):
         self.project = project
         self.name = name
         self._init = True
+        self.artifact = {}
+        
+    def init_artifact(self, artifact_name:str, artifact_type:str):
+        self.artifact[artifact_type] = wandb.Artifact(artifact_name, type=artifact_type)
+
+    def upload_artifacts_from_path(self, artifact_type:str, path:str):
+        self.artifact[artifact_type].add_dir(path)
+        wandb.log_artifact(self.artifact[artifact_type])
         
     def set_data(self, key:str, value:float):
         self.log_data[key] = value
