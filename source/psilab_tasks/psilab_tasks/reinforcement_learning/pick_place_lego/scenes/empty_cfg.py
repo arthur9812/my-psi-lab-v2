@@ -256,15 +256,15 @@ SCENE_CFG = SceneCfg(
                 prim_path="/World/envs/env_[0-9]+/Target",
                 spawn=sim_utils.MultiUsdFileCfg(
                     usd_path=[
-                        PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2.usd",
+                        PSILAB_USD_ASSET_DIR + "/rigid_objects/lego/1x2_automass.usd",
                     ],
                     activate_contact_sensors = True,
                     random_choice=False,
                     scale=(1.0,1.0,1.0),
                     visual_material=None,
-                    mass_props=MassPropertiesCfg(
-                        mass = 0.01
-                    ),
+                    # mass_props=MassPropertiesCfg(
+                    #     mass = 0.01
+                    # ),
                     rigid_props=RigidBodyPropertiesCfg(
                         solver_position_iteration_count=255,
                     ),
